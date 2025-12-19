@@ -1,10 +1,13 @@
 import numpy as np
 from typing import Union, Literal
+
+from cycler import Cycler
+
 from src.models.base_tyre import TyreBase
 from src.utils.misc import allowableData, check_format
 
-# TODO: add support for coefficients fitted in degrees
 # TODO: add support for alternative ISO system
+# TODO: add turn slip correction
 
 class MF61(TyreBase):
     """
@@ -27,6 +30,7 @@ class MF61(TyreBase):
         """
         Here some widely used standard values are stored, as well as terms that still need an implementation.
         """
+
         # run the initialization from the base class
         super().__init_from_data__(data, **settings)
 
@@ -40,9 +44,6 @@ class MF61(TyreBase):
         self.zeta_6 = 1.0
         self.zeta_7 = 1.0
         self.zeta_8 = 1.0
-
-        # contact patch velocity correction
-        self.eps_V = 0.1
 
         # various other correction factors TODO: find value for these
         self.eps_x = 0.0
@@ -91,13 +92,10 @@ class MF61(TyreBase):
 
         # perform limit checks
         if self._check_limits:
-            self.__limit_check(None, SL, FZ, P, IA)
+            self._limit_check(None, SL, FZ, P, IA)
 
-        # convert camber to radians TODO: this needs fixing, since it won't work for np.sin etc.
-        if angle_unit == "deg" and self.ANGLE == "radians":
-            IA = np.deg2rad(IA)
-        elif angle_unit == "rad" and self.ANGLE == "degrees":
-            IA = np.rad2deg(IA)
+        # correct angle if mismatched between input array and TIR file
+        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # reference speed
         V0 = self.LONGVL
@@ -124,7 +122,7 @@ class MF61(TyreBase):
         C_X = self.PCX1 * self.LCX
 
         # friction coefficient (4.E13)
-        mu_x = self.find_mu_x(FZ, P, IA, VS)
+        mu_x = self.find_mu_x(FZ, P, IA, VS, angle_unit)
 
         # peak factor (4.E12)
         D_X = mu_x * FZ * self.zeta_1
@@ -139,7 +137,7 @@ class MF61(TyreBase):
         B_X = KXK / (C_X * D_X + self.eps_x)
 
         # Longitudinal force (4.E9)
-        FX = D_X * np.sin(C_X * np.atan2(B_X * kappa_x - E_X * (B_X * kappa_x - np.atan2(B_X * kappa_x, 1)), 1)) + S_VX
+        FX = D_X * self.sin(C_X * self.atan(B_X * kappa_x - E_X * (B_X * kappa_x - self.atan(B_X * kappa_x)))) + S_VX
 
         return FX
 
@@ -176,6 +174,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, FZ, P, IA, VS, VCX  = check_format([SA, FZ, P, IA, VS, VCX])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # find normalized load and pressure
         dfz = self.__find_dfz(FZ)
         dpi = self.__find_dpi(P)
@@ -196,7 +197,7 @@ class MF61(TyreBase):
         LMUY_prime = self.__find_lmu_prime(LMUY_star)
 
         # cornering stiffness (4.E25)
-        KYA = self.find_cornering_stiffness(FZ, dpi, gamma_star)
+        KYA = self.find_cornering_stiffness(FZ, dpi, gamma_star, angle_unit)
 
         # camber stiffness (4.E30)
         KYCO = self.find_camber_stiffness(FZ, dpi)
@@ -214,7 +215,7 @@ class MF61(TyreBase):
         C_Y = self.__find_cy()
 
         # friction coefficient (4.E23)
-        mu_y = self.find_mu_y(FZ, P, IA, VS)
+        mu_y = self.find_mu_y(FZ, P, IA, VS, angle_unit)
 
         # peak factor (4.E22)
         D_Y = self.__find_dy(mu_y, FZ)
@@ -226,7 +227,7 @@ class MF61(TyreBase):
         B_Y = self.__find_by(KYA, C_Y, D_Y)
 
         # lateral force (4.E19)
-        FY = D_Y * np.sin(C_Y * np.atan2(B_Y * alpha_y - E_Y * (B_Y * alpha_y - np.atan2(B_Y * alpha_y, 1)), 1)) + S_VY
+        FY = D_Y * self.sin(C_Y * self.atan(B_Y * alpha_y - E_Y * (B_Y * alpha_y - self.atan(B_Y * alpha_y)))) + S_VY
 
         return FY
 
@@ -266,6 +267,9 @@ class MF61(TyreBase):
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
             SA, SL, FZ, P, IA, VCX, VS  = check_format([SA, SL, FZ, P, IA, VCX, VS])
+
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # normalized vertical load
         dfz = self.__find_dfz(FZ)
@@ -336,6 +340,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, SL, FZ, P, IA, VCX, VS = check_format([SA, SL, FZ, P, IA, VCX, VS])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # normalized vertical load
         dfz = self.__find_dfz(FZ)
 
@@ -349,7 +356,7 @@ class MF61(TyreBase):
         FY0 = self.find_fy_pure(SA, FZ, P, IA, VCX, VS, angle_unit)
 
         # lateral friction coefficient
-        mu_y = self.find_mu_y(FZ, P, IA, VS)
+        mu_y = self.find_mu_y(FZ, P, IA, VS, angle_unit)
 
         # stiffness factor (4.E62)
         B_YK = (self.RBY1 + self.RBY4 * gamma_star ** 2) * np.cos(np.atan2(self.RBY2 * (alpha_star - self.RBY3), 1)) * self.LYKA
@@ -417,6 +424,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, FZ, P, IA, VCX, VS = check_format([SA, FZ, P, IA, VCX, VS])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # find side force
         FY = self.find_fy_pure(SA, FZ, P, IA, VCX, VS, angle_unit)
 
@@ -452,6 +462,9 @@ class MF61(TyreBase):
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
             SL, FZ, P, IA, VX = check_format([SL, FZ, P, IA, VX])
+
+        # correct angle if mismatched between input array and TIR file
+        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # calculate FX
         FX = self.find_fx_pure(SL, FZ, P, IA, VS, angle_unit)
@@ -494,6 +507,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, FZ, P, IA, VC, VCX, VS = check_format([SA, FZ, P, IA, VC, VCX, VS])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # pneumatic trail
         t = self.find_trail_pure(SA, FZ, P, IA, VC, VCX, VS, angle_unit)
 
@@ -507,7 +523,7 @@ class MF61(TyreBase):
         #KZCO = FZ * R0 * (self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) * self.LKZC * LMUY_star - D_T0 * KYCO
 
         # residual self-aligning couple (4.E36)
-        MZR = self.__mz_main_routine(SA, 0.0, FZ, P, IA, VC, VCX, VS, combined_slip = False)
+        MZR = self.__mz_main_routine(SA, 0.0, FZ, P, IA, VC, VCX, VS, combined_slip=False, angle_unit=angle_unit)
 
         # self-aligning couple due to pneumatic trail (4.E32)
         MZ_prime = - t * FY
@@ -554,6 +570,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, SL, FZ, P, IA, VCX, VS = check_format([SA, SL, FZ, P, IA, VCX, VS])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # find side force
         FY = self.find_fy(SA, SL, FZ, P, IA, VCX, VS, angle_unit)
 
@@ -595,6 +614,9 @@ class MF61(TyreBase):
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
             SA, SL, FZ, P, IA, VCX, VX = check_format([SA, SL, FZ, P, IA, VCX, VX])
+
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # calculate FX
         FX = self.find_fx(SA, SL, FZ, P, IA, VS, VCX, angle_unit)
@@ -639,6 +661,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, SL, FZ, P, IA, VC, VCX, VS = check_format([SA, SL, FZ, P, IA, VC, VCX, VS])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # unpack tyre properties
         R0  = self.UNLOADED_RADIUS
         FZ0 = self.FNOMIN
@@ -660,7 +685,7 @@ class MF61(TyreBase):
         FY_prime = self.find_fy(SA, SL, FZ, P, 0.0, VCX, VS, angle_unit)
 
         # pneumatic trail
-        t = self.find_trail(SA, SL, FZ, P, IA, VC, VCX, VS)
+        t = self.find_trail(SA, SL, FZ, P, IA, VC, VCX, VS, angle_unit)
 
         # pneumatic scrub (4.E76)
         s = R0 * (self.SSZ1 + self.SSZ2 * (FY / FZ0_prime) + (self.SSZ3 + self.SSZ4 * dfz) * gamma_star) * self.LS
@@ -669,7 +694,7 @@ class MF61(TyreBase):
         MZ_prime = -t * FY_prime
 
         # residual self-aligning couple
-        MZR = self.__mz_main_routine(SA, SL, FZ, P, IA, VC, VCX, VS, combined_slip = True)
+        MZR = self.__mz_main_routine(SA, SL, FZ, P, IA, VC, VCX, VS, combined_slip=True, angle_unit=angle_unit)
 
         # final self-aligning couple (4.E71)
         MZ = MZ_prime + MZR + s * FX
@@ -705,8 +730,8 @@ class MF61(TyreBase):
         """
 
         # find planar forces
-        FX = self.find_fx(SA, SL, FZ, P, IA, VCX, VS)
-        FY = self.find_fy(SA, SL, FZ, P, IA, VCX, VS)
+        FX = self.find_fx(SA, SL, FZ, P, IA, VCX, VS, angle_unit=angle_unit)
+        FY = self.find_fy(SA, SL, FZ, P, IA, VCX, VS, angle_unit=angle_unit)
         return [FX, FY, FZ]
 
     def find_moments(
@@ -737,14 +762,46 @@ class MF61(TyreBase):
         """
 
         MX = self.find_mx(SA, SL, FZ, P, IA, VCX, VS, angle_unit)
-        MY = self.find_my(SA, SL, FZ, P, IA, VCX, angle_unit)
+        MY = self.find_my(SA, SL, FZ, P, IA, VX, angle_unit)
         MZ = self.find_mz(SA, SL, FZ, P, IA, VC, VCX, VS, angle_unit)
         return [MX, MY, MZ]
 
-    def find_lateral(
+    def find_force_moment(
+            self,
+            SA:  allowableData,
+            SL:  allowableData,
+            FZ:  allowableData,
+            VX:  allowableData,
+            P:   allowableData = None,
+            IA:  allowableData = 0.0,
+            VCX: allowableData = 1.0,
+            VS:  allowableData = None,
+            angle_unit: Literal["deg", "rad"] = "rad") -> list[allowableData]:
+        """
+        Finds the total force and moment vector of the tyre for combined slip conditions.
+
+        :param SA: slip angle.
+        :param SL: slip ratio.
+        :param FZ: vertical load.
+        :param VX: longitudinal speed.
+        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
+        :param VCX: contact patch longitudinal speed (optional, will default to 1.0 if not specified).
+        :param VS: slip speed magnitude (optional, will default to ``LONGVL`` if not specified).
+        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+
+        :return: list of tyre forces and moments. Order is ``FX``, ``FY``, ``FZ``, ``MX``, ``MY``, ``MZ``.
+        """
+
+        [FX, FY, FZ] = self.find_forces(SA, SL, FZ, P, IA, VCX, VS, angle_unit)
+        [MX, MY, MZ] = self.find_moments(SA, SL, FZ, VX, P, IA, VCX, VS, angle_unit)
+        return [FX, FY, FZ, MX, MY, MZ]
+
+    def find_lateral_output(
             self,
             SA:  allowableData,
             FZ:  allowableData,
+            N:   allowableData,
             P:   allowableData = None,
             IA:  allowableData = 0.0,
             VC:  allowableData = None,
@@ -752,8 +809,9 @@ class MF61(TyreBase):
             VS:  allowableData = None,
             angle_unit: Literal["rad", "deg"] = "rad") -> list[allowableData]:
         """
-        Finds the free rolling forces and moments commonly used in lateral vehicle tyre_models.
+        Finds the free rolling outputs commonly used in lateral vehicle tyre_models.
 
+        :param N:
         :param SA: slip angle.
         :param FZ: vertical load.
         :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
@@ -763,15 +821,17 @@ class MF61(TyreBase):
         :param VS:  slip speed (optional, will default to ``LONGVL`` if not specified).
         :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
 
-        :return: Lateral tyre forces and moments. Order is ``FY``, ``MX``, ``MZ``.
+        :return: Output state. Order is ``FY``, ``MX``, ``MZ``, ``RL``, ``sigma_y``.
         """
 
         FY = self.find_fy_pure(SA, FZ, P, IA, VCX, VS, angle_unit)
         MX = self.find_mx_pure(SA, FZ, P, IA, VCX, VS, angle_unit)
         MZ = self.find_mz_pure(SA, FZ, P, IA, VC, VCX, VS, angle_unit)
-        return [FY, MX, MZ]
+        RL = self.find_loaded_radius(0.0, FY, FZ, N, P)
+        sigma_y = self.find_lateral_relaxation(FZ, P, IA, angle_unit)
+        return [FY, MX, MZ, RL, sigma_y]
 
-    def find_longitudinal(
+    def find_longitudinal_output(
             self,
             SL: allowableData,
             FZ: allowableData,
@@ -780,8 +840,7 @@ class MF61(TyreBase):
             VS: allowableData = None,
             angle_unit: Literal["rad", "deg"] = "rad") -> list[allowableData]:
         """
-        Finds the pure slip forces and moments commonly used in longitudinal vehicle tyre_models. Calculations according
-        to Pacejka's MF 6.1.2 model.
+        Finds the pure slip forces and moments commonly used in longitudinal vehicle tyre_models.
 
         :param SL: slip ratio.
         :param FZ: vertical load.
@@ -797,9 +856,102 @@ class MF61(TyreBase):
         MY = self.find_my_pure(SL, FZ, P, IA, VS, angle_unit)
         return [FX, MY]
 
-    # TODO
-    def find_full_state(self):
-        pass
+    def find_full_state(
+            self,
+            SA:  allowableData,
+            SL:  allowableData,
+            FZ:  allowableData,
+            VX:  allowableData,
+            N:   allowableData,
+            P:   allowableData = None,
+            IA:  allowableData = 0.0,
+            VC:  allowableData = None,
+            VCX: allowableData = 1.0,
+            VS:  allowableData = None,
+            angle_unit: Literal["rad", "deg"] = "rad") -> list[allowableData]:
+        """
+        Finds the full output state of the tyre. Not recommended to use this in performance-sensitive vehicle models, as
+        some functions are called multiple times.
+
+        :param SA: slip angle.
+        :param SL: slip ratio.
+        :param FZ: vertical load.
+        :param VX: longitudinal speed.
+        :param N: wheel angular speed.
+        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
+        :param VC: contact patch speed (optional, will default to ``LONGVL`` if not specified).
+        :param VCX: contact patch longitudinal speed (optional, will default to 1.0 if not specified).
+        :param VS:  slip speed (optional, will default to ``LONGVL`` if not specified).
+        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+
+        :return: list containing the full state of the tyre. See documentation for the order.
+        """
+
+        # force and moment vector
+        [FX, FY, FZ, MX, MY, MZ] = self.find_force_moment(SA, SL, FZ, VX, P, IA, VCX, VS, angle_unit)
+
+        # residual self-aligning couple
+        MZR = self.__mz_main_routine(SA, SL, FZ, P, IA, VC, VCX, VS, combined_slip=True, angle_unit=angle_unit)
+
+        # free, loaded, and effective radii, and deflection
+        R_omega = self.find_free_radius(N) # NOT USED IN COMPATIBILITY MODE
+        RE      = self.find_effective_radius(FZ, N, P)
+        RL      = self.find_loaded_radius(FX, FY, FZ, N, P)
+        rho     = self.find_deflection(FX, FY, FZ, N, P)
+
+        # pneumatic trail
+        t = self.find_trail(SA, SL, FZ, P, IA, VC, VCX, VS, angle_unit)
+
+        # friction coefficients
+        mu_x = self.find_mu_x(FZ, P, IA, VS, angle_unit)
+        mu_y = self.find_mu_y(FZ, P, IA, VS, angle_unit)
+
+        # contact patch dimensions
+        a, b = self.find_contact_patch(FZ)
+
+        # tyre stiffness
+        Cx = self.find_longitudinal_stiffness(FZ, P)
+        Cy = self.find_lateral_stiffness(FZ, P)
+        Cz = self.find_vertical_stiffness(P)
+
+        # slip stiffness
+        KXK = self.find_slip_stiffness(FZ, P)
+        KYA = self.find_cornering_stiffness(FZ, P, IA, angle_unit)
+
+        # relaxation length
+        sigma_x = self.find_longitudinal_relaxation(FZ, P)
+        sigma_y = self.find_lateral_relaxation(FZ, P, IA, angle_unit)
+
+        # TODO: update this once turn slip is implemented
+        PHIT = None
+
+        # TODO: calculate this
+        iKYA = None
+
+        # assemble final output
+        if self.use_mfeval_mode:
+
+            # compatibility mode. Output vector has the same order as MFeval
+            output = [FX, FY, FZ, MX, MY, MZ, SL, SA, IA, PHIT, VX, P, RE, rho, 2*a,
+                t, mu_x, mu_y, N, RL, 2*b, MZR, Cx, Cy, Cz, KYA, sigma_x, sigma_y, iKYA, KXK]
+        else:
+
+            # more organized output vector
+            output = [
+                FX, FY, FZ,                 # FORCES
+                MX, MY, MZ,                 # MOMENTS
+                SL, SA, IA, PHIT, VX, P, N, # INPUT STATE
+                R_omega, RE, rho, RL,       # RADII
+                2*a, 2*b,                   # CONTACT PATCH
+                t,                          # TRAIL
+                mu_x, mu_y,                 # FRICTION COEFFICIENT
+                MZR,                        # RESIDUAL MOMENT
+                Cx, Cy, Cz,                 # TYRE STIFFNESS
+                KYA, iKYA, KXK,             # SLIP STIFFNESS
+                sigma_x, sigma_y            # RELAXATION LENGTHS
+                ]
+        return output
 
     #------------------------------------------------------------------------------------------------------------------#
     # TYRE RADII
@@ -855,11 +1007,17 @@ class MF61(TyreBase):
         rho = (- B - np.sqrt(B ** 2 - 4 * A * C)) / (2 * A)
 
         # display warning if only imaginary solutions can be found for a datapoint TODO: check is more needs to be done with this.
-        if any(B ** 2 - 4 * A * C < 0):
+        check_root = B ** 2 - 4 * A * C
+        if not isinstance(check_root, np.ndarray):
+            if isinstance(check_root, list):
+                check_root = np.array(check_root)
+            else:
+                check_root = np.array([check_root])
+        if any(check_root < 0.0):
             raise Warning("No real solution found for the tyre deflection!")
 
         # apply proper limits to avoid dividing by zero
-        rho = max(rho, 1e-6)
+        rho = np.clip(rho, 1e-6, np.inf)
 
         # TODO: add bottoming out check
 
@@ -894,10 +1052,10 @@ class MF61(TyreBase):
         CZ = self.find_vertical_stiffness(P)
 
         # loaded radius
-        Romega = self.find_free_radius(N)
+        R_omega = self.find_free_radius(N)
 
         # effective radius (A3.6)
-        RE = Romega - FZ0 / CZ * (self.FREFF * FZ / FZ0 + self.DREFF * np.atan2(self.BREFF * FZ / FZ0, 1))
+        RE = R_omega - FZ0 / CZ * (self.FREFF * FZ / FZ0 + self.DREFF * np.atan2(self.BREFF * FZ / FZ0, 1))
         return RE
 
     def find_free_radius(self, N: allowableData) -> allowableData:
@@ -906,7 +1064,7 @@ class MF61(TyreBase):
         MF 6.1.2.
 
         :param N: angular speed of the wheel.
-        :return: ``Romega`` -- free rolling radius.
+        :return: ``R_omega`` -- free rolling radius.
         """
 
         # check if arrays have the right dimension, and flatten if needed
@@ -918,8 +1076,8 @@ class MF61(TyreBase):
         V0 = self.LONGVL
 
         # free rolling radius (A3.1)
-        Romega = R0 * (self.Q_RE0 + self.Q_V1 * (R0 * N / V0) ** 2)
-        return Romega
+        R_omega = R0 * (self.Q_RE0 + self.Q_V1 * (R0 * N / V0) ** 2)
+        return R_omega
 
     def find_loaded_radius(
             self,
@@ -963,7 +1121,8 @@ class MF61(TyreBase):
             FZ: allowableData,
             P:  allowableData = None,
             IA: allowableData = 0.0,
-            VS: allowableData = None) -> allowableData:
+            VS: allowableData = None,
+            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
         Finds the longitudinal friction coefficient.
 
@@ -971,6 +1130,7 @@ class MF61(TyreBase):
         :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
         :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
         :param VS: slip speed magnitude (optional, will default to ``LONGVL`` if not specified).
+        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
 
         :return: ``mu_x`` -- longitudinal friction coefficient.
         """
@@ -982,6 +1142,9 @@ class MF61(TyreBase):
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
             FZ, P, IA, VS = check_format([FZ, P, IA, VS])
+
+        # correct angle if mismatched between input array and TIR file
+        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # unpack tyre properties
         V0 = self.LONGVL
@@ -1004,7 +1167,8 @@ class MF61(TyreBase):
             FZ: allowableData,
             P:  allowableData = None,
             IA: allowableData = 0.0,
-            VS: allowableData = None) -> allowableData:
+            VS: allowableData = None,
+            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
         Finds the lateral friction coefficient.
 
@@ -1012,6 +1176,7 @@ class MF61(TyreBase):
         :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
         :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
         :param VS: slip speed magnitude (optional, will default to ``LONGVL`` if not specified).
+        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
 
         :return: ``mu_y`` -- lateral friction coefficient.
         """
@@ -1023,6 +1188,9 @@ class MF61(TyreBase):
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
             FZ, P, IA, VS = check_format([FZ, P, IA, VS])
+
+        # correct angle if mismatched between input array and TIR file
+        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # unpack tyre properties
         V0 = self.LONGVL
@@ -1046,13 +1214,55 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # TYRE STIFFNESS
 
-    # TODO
-    def find_lateral_stiffness(self):
-        pass
+    def find_lateral_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
+        """
+        Finds the lateral stiffness of the tyre, adjusted for load and pressure.
 
-    # TODO
-    def find_longitudinal_stiffness(self):
-        pass
+        :param FZ: vertical load.
+        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+
+        :return: ``Cy`` -- lateral stiffness.
+        """
+
+        # check if arrays have the right dimension, and flatten if needed
+        if self._check_format:
+            FZ, P = check_format([FZ, P])
+
+        # unpack tyre properties
+        Cy0 = self.LATERAL_STIFFNESS
+
+        # normalize pressure and load
+        dfz = self.__find_dfz(FZ)
+        dpi = self.__find_dpi(P)
+
+        # lateral stiffness (A3.10)
+        Cy = Cy0 * (1.0 + self.PCFY1 * dfz + self.PCFY2 * dfz ** 2) * (1.0 + self.PCFY3 * dpi)
+        return Cy
+
+    def find_longitudinal_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
+        """
+        Finds the longitudinal stiffness of the tyre, adjusted for load and pressure.
+
+        :param FZ: vertical load.
+        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+
+        :return: ``Cx`` -- longitudinal stiffness.
+        """
+
+        # check if arrays have the right dimension, and flatten if needed
+        if self._check_format:
+            FZ, P = check_format([FZ, P])
+
+        # unpack tyre properties
+        Cx0 = self.LONGITUDINAL_STIFFNESS
+
+        # normalize pressure and load
+        dfz = self.__find_dfz(FZ)
+        dpi = self.__find_dpi(P)
+
+        # lateral stiffness (A3.10)
+        Cx = Cx0 * (1.0 + self.PCFX1 * dfz + self.PCFX2 * dfz ** 2) * (1.0 + self.PCFX3 * dpi)
+        return Cx
 
     def find_vertical_stiffness(self, P: allowableData) -> allowableData:
         """
@@ -1079,7 +1289,7 @@ class MF61(TyreBase):
         return CZ
 
     #------------------------------------------------------------------------------------------------------------------#
-    # OTHER PARAMETERS
+    # CONTACT PATCH DIMENSIONS
 
     def find_contact_patch(self, FZ: allowableData) -> list[allowableData]:
         """
@@ -1108,6 +1318,9 @@ class MF61(TyreBase):
         b = W * (self.Q_RB2 * FZ / (CZ * R0) + self.Q_RB1 * (FZ / (CZ * R0)) ** (1/3))
 
         return [a, b]
+
+    #------------------------------------------------------------------------------------------------------------------#
+    # PNEUMATIC TRAIL
 
     # TESTED
     def find_trail_pure(
@@ -1144,6 +1357,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, FZ, P, IA, VC, VCX, VS = check_format([SA, FZ, P, IA, VC, VCX, VS])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # cosine term correction factor
         cos_prime_alpha = self.__find_cos_prime_alpha(VC, VCX)
 
@@ -1164,7 +1380,8 @@ class MF61(TyreBase):
             IA:  allowableData = 0.0,
             VC:  allowableData = None,
             VCX: allowableData = 1.0,
-            VS:  allowableData = None) -> allowableData:
+            VS:  allowableData = None,
+            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
         Finds the pneumatic trail of the tyre for combined slip conditions.
 
@@ -1176,6 +1393,7 @@ class MF61(TyreBase):
         :param VC: contact patch speed (optional, will default to ``LONGVL`` if not specified).
         :param VCX: contact patch longitudinal speed (optional, if not selected the ``LONGVL`` parameter is used).
         :param VS: slip speed (optional, will default to ``LONGVL`` if not specified).
+        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
 
         :return: ``t`` -- pneumatic trail.
         """
@@ -1189,6 +1407,9 @@ class MF61(TyreBase):
         if self._check_format:
             SA, SL, FZ, P, IA, VC, VCX, VS = check_format([SA, SL, FZ, P, IA, VC, VCX, VS])
 
+        # correct angle if mismatched between input array and TIR file
+        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
         # cosine term correction factor
         cos_prime_alpha = self.__find_cos_prime_alpha(VC, VCX)
 
@@ -1196,7 +1417,7 @@ class MF61(TyreBase):
         BT, CT, DT, ET, alpha_t = self.__trail_main_routine(SA, FZ, P, IA, VCX, VS)
 
         # slip stiffness
-        KYA = self.find_cornering_stiffness(FZ, P, IA)
+        KYA = self.find_cornering_stiffness(FZ, P, IA, angle_unit)
         KXK = self.find_slip_stiffness(FZ, P)
 
         # corrected cornering stiffness (4.E39)
@@ -1216,13 +1437,15 @@ class MF61(TyreBase):
             self,
             FZ: allowableData,
             P:  allowableData = None,
-            IA: allowableData = 0.0) -> allowableData:
+            IA: allowableData = 0.0,
+            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
         Finds the cornering stiffness at zero slip angle for pure slip conditions.
 
         :param FZ: vertical load.
-        :param P:
-        :param IA:
+        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
+        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
 
         :return: ``KYA`` -- cornering stiffness.
         """
@@ -1236,6 +1459,9 @@ class MF61(TyreBase):
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
             FZ, P, IA = check_format([FZ, P, IA])
+
+        # correct angle if mismatched between input array and TIR file
+        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # corrected camber angle
         gamma_star = self.__find_gamma_star(IA)
@@ -1308,6 +1534,76 @@ class MF61(TyreBase):
         # camber stiffness (4.E30)
         KYCO = FZ * (self.PKY6 + self.PKY7 * dfz) * (1.0 - self.PPY5 * dpi) * self.LKYC
         return KYCO
+
+    #------------------------------------------------------------------------------------------------------------------#
+    # RELAXATION LENGTHS
+
+    def find_lateral_relaxation(
+            self,
+            FZ: allowableData,
+            P:  allowableData = None,
+            IA: allowableData = 0.0,
+            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
+        """
+        Finds the lateral relaxation length.
+
+        :param FZ: vertical load.
+        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
+        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+
+        :return: ``sigma_y`` -- lateral relaxation length.
+        """
+
+        # set default value for optional arguments
+        P = self.INFLPRES if P is None else P
+
+        # check if arrays have the right dimension, and flatten if needed
+        if self._check_format:
+            FZ, P, IA = check_format([FZ, P, IA])
+
+        # correct angle if mismatched between input array and TIR file
+        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
+
+        # cornering stiffness
+        KYA = self.find_cornering_stiffness(FZ, P, IA, angle_unit)
+
+        # lateral stiffness
+        Cy = self.find_lateral_stiffness(FZ, P)
+
+        # lateral relaxation length (A3.9)
+        sigma_y = KYA / Cy
+        return sigma_y
+
+    def find_longitudinal_relaxation(
+            self,
+            FZ: allowableData,
+            P:  allowableData = None) -> allowableData:
+        """
+        Finds the longitudinal relaxation length.
+
+        :param FZ: vertical load.
+        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+
+        :return: ``sigma_x`` -- longitudinal relaxation length.
+        """
+
+        # set default value for optional arguments
+        P = self.INFLPRES if P is None else P
+
+        # check if arrays have the right dimension, and flatten if needed
+        if self._check_format:
+            FZ, P = check_format([FZ, P])
+
+        # slip stiffness
+        KXK = self.find_slip_stiffness(FZ, P)
+
+        # longitudinal stiffness
+        Cx = self.find_longitudinal_stiffness(FZ, P)
+
+        # longitudinal relaxation length (A3.9)
+        sigma_x = KXK / Cx
+        return sigma_x
 
     #------------------------------------------------------------------------------------------------------------------#
     # INTERNAL FUNCTIONS
@@ -1471,8 +1767,10 @@ class MF61(TyreBase):
 
         return MY
 
-    def __mz_main_routine(self, SA: allowableData, SL: allowableData, FZ: allowableData, P: allowableData, IA: allowableData, VC: allowableData, VCX: allowableData, VS: allowableData, combined_slip: bool = False) -> allowableData:
-        """Function containing the main ``MZ`` calculation routine. Used in ``find_mz`` and ``find_mz_pure``."""
+    def __mz_main_routine(self, SA: allowableData, SL: allowableData, FZ: allowableData, P: allowableData, IA: allowableData, VC: allowableData, VCX: allowableData, VS: allowableData, combined_slip: bool = False, angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
+        """Function containing the main ``MZ`` calculation routine. Used in ``find_mz`` and ``find_mz_pure``.
+        :param angle_unit:
+        """
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -1490,7 +1788,7 @@ class MF61(TyreBase):
         LMUY_prime = self.__find_lmu_prime(LMUY_star)
 
         # cornering and camber stiffness
-        KYA = self.find_cornering_stiffness(FZ, P, IA)
+        KYA = self.find_cornering_stiffness(FZ, P, IA, angle_unit)
         KYCO = self.find_camber_stiffness(FZ, P)
         KYA_prime = KYA + self.eps_K
 
@@ -1526,7 +1824,7 @@ class MF61(TyreBase):
         LMUY_star = self.__find_lmu_star(VS, V0, self.LMUY)
 
         # friction coefficient (4.E23)
-        mu_y = self.find_mu_y(FZ, LMUY_star, IA, VS)
+        mu_y = self.find_mu_y(FZ, LMUY_star, IA, VS, angle_unit)
 
         # peak factor (4.E22)
         D_Y = self.__find_dy(mu_y, FZ)
@@ -1607,28 +1905,3 @@ class MF61(TyreBase):
 
         return [BT, CT, DT, ET, alpha_t]
 
-    def __limit_check(self, SA: allowableData = None, SL: allowableData = None, FZ: allowableData = None,
-                      P: allowableData = None, IA: allowableData = None):
-        """Performs limit checks on the input signal."""
-
-        def main(sig_in: allowableData, minval, maxval, sig_name: str):
-            try:
-                if any(minval < sig_in < maxval):
-                    raise Warning(f"{sig_name} exceeds specified limits.")
-            except KeyError or TypeError:
-                pass
-
-        # pressure check
-        main(P, self.PRESMIN, self.PRESMAX, "Pressure")
-
-        # slip angle check
-        main(SA, self.ALPMIN, self.ALPMAX, "Slip angle")
-
-        # slip ratio check
-        main(SL, self.KPUMIN, self.KPUMAX, "Slip ratio")
-
-        # inclination angle check
-        main(IA, self.CAMMIN, self.CAMMAX, "Inclination angle")
-
-        # vertical load check
-        main(FZ, self.FZMIN, self.FZMAX, "Vertical load")
