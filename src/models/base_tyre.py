@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from typing import Union, Literal
 from src.utils.misc import allowableData
@@ -94,8 +95,14 @@ class TyreBase:
         """Performs limit checks on the input signal."""
         
         def main(sig_in, minval, maxval, sig_name: str):
-            if any(minval < sig_in < maxval): # TODO: make sure sig_in is always np.ndarray
-                raise Warning(f"{sig_name} exceeds specified limits.")
+            if sig_in is not None:
+                if not isinstance(sig_in, np.ndarray):
+                    if isinstance(sig_in, list):
+                        sig_in = np.array(sig_in)
+                    else:
+                        sig_in = np.array([sig_in])
+                if any(sig_in < minval) or any(sig_in > maxval):
+                    warnings.warn(f"{sig_name} exceeds specified limits.")
 
         # pressure check
         try:
