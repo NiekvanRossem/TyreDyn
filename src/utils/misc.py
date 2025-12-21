@@ -5,13 +5,14 @@ import numpy as np
 numberData = Union[int, float]
 allowableData = Union[numberData, list[numberData], tuple[numberData], np.typing.NDArray[numberData]]
 
+"""
 def check_format(data: Union[allowableData, list[allowableData]]) -> allowableData:
-    """
+    \"""
     Checks the shape of the input data, and flattens them to 1D arrays if needed.
 
     :param data: input array.
     :return: ``data`` -- flattened into 1D array.
-    """
+    \"""
 
     # if a list of channels is passed
     if isinstance(data, list):
@@ -28,6 +29,7 @@ def check_format(data: Union[allowableData, list[allowableData]]) -> allowableDa
                 assert data.shape[1] == 1, "Please input a 1D array."
                 data = data.flatten()
     return data
+"""
 
 def normalize_fittyp(fittyp: str) -> str:
     """

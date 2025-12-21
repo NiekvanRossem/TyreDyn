@@ -58,7 +58,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # FREE ROLLING FORCES
 
-    # TESTED
+    # MOVED
     def find_fx_pure(
             self,
             SL: allowableData,
@@ -241,7 +241,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # COMBINED SLIP FORCES
 
-    # TESTED
+    # MOVED
     def find_fx(
             self,
             SA:  allowableData,
@@ -918,7 +918,7 @@ class MF61(TyreBase):
             PHI: allowableData = None,
             angle_unit: Literal["rad", "deg"] = "rad") -> list[allowableData]:
         """
-        Finds the full output state of the tyre. Not recommended to use this in performance-sensitive vehicle models, as
+        Finds the full output state of the tyre. Not recommended to use this in performance-sensitive vehicle base, as
         some functions are called multiple times.
 
         :param PHI:
@@ -1171,6 +1171,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # FRICTION COEFFICIENTS
 
+    # MOVED
     def find_mu_x(
             self,
             FZ: allowableData,
@@ -1216,6 +1217,7 @@ class MF61(TyreBase):
 
         return mu_x
 
+    # MOVED
     def find_mu_y(
             self,
             FZ: allowableData,
@@ -1710,6 +1712,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # INTERNAL FUNCTIONS
 
+    # MOVED
     def __find_alpha_star(self, SA: allowableData, VCX: allowableData) -> allowableData:
         """Finds the corrected slip angle."""
 
@@ -1720,6 +1723,7 @@ class MF61(TyreBase):
             alpha_star = SA
         return alpha_star
 
+    # MOVED
     def __find_cos_prime_alpha(self, VC: allowableData, VCX: allowableData) -> allowableData:
         """Finds the correction factor for cosine terms when dealing with large slip angles."""
 
@@ -1730,6 +1734,7 @@ class MF61(TyreBase):
         cos_prime_alpha = VCX / VC_prime
         return cos_prime_alpha
 
+    # MOVED
     def __find_by(self, FZ: allowableData, KYA: allowableData, CY: allowableData, DY: allowableData) -> allowableData:
         """Finds the stiffness factor for the side force."""
 
@@ -1738,6 +1743,7 @@ class MF61(TyreBase):
         BY = KYA / (CY * DY + eps_y)
         return BY
 
+    # MOVED
     def __find_cy(self) -> allowableData:
         """Finds the shape factor for the side force."""
 
@@ -1745,6 +1751,7 @@ class MF61(TyreBase):
         CY = self.PCY1 * self.LCY
         return CY
 
+    # MOVED
     def __find_dfz(self, FZ: allowableData) -> allowableData:
         """Finds the normalized vertical load."""
 
@@ -1760,6 +1767,7 @@ class MF61(TyreBase):
 
         return dfz
 
+    # MOVED
     def __find_dpi(self, P: allowableData) -> allowableData:
         """Finds the normalized tyre pressure."""
 
@@ -1777,6 +1785,7 @@ class MF61(TyreBase):
         DT0 = FZ * (R0 / FZ0_prime) * (self.QDZ1 + self.QDZ2 * dfz) * (1.0 - self.PPZ1 * dpi) * self.LTR * np.sign(VCX)
         return DT0
 
+    # MOVED
     @staticmethod
     def __find_dy(mu_y: allowableData, FZ: allowableData, zeta_2) -> allowableData:
         """Finds the peak factor for the side force."""
@@ -1785,6 +1794,7 @@ class MF61(TyreBase):
         DY = mu_y * FZ * zeta_2
         return DY
 
+    # MOVED
     def __find_eps_y(self, FZ):
         """Difference between camber and turn slip response."""
 
@@ -1801,6 +1811,7 @@ class MF61(TyreBase):
 
         return eps_y
 
+    # MOVED
     def __find_gamma_star(self, IA: allowableData) -> allowableData:
         """Finds the corrected inclination angle."""
 
@@ -1811,12 +1822,14 @@ class MF61(TyreBase):
             gamma_star = IA
         return gamma_star
 
+    # MOVED
     def __find_lmu_prime(self, LMU_star: allowableData) -> allowableData:
         """Finds the composite friction scaling factor."""
 
         lmu_prime = self.A_mu * LMU_star / (1.0 + (self.A_mu - 1.0) * LMU_star)
         return lmu_prime
 
+    # MOVED
     def __find_lmu_star(self, VS: allowableData, V0: float, LMU: float) -> allowableData:
         """Finds the composite friction scaling factor."""
 
@@ -1827,6 +1840,7 @@ class MF61(TyreBase):
             LMU_star = LMU
         return LMU_star
 
+    # MOVED
     def __find_s_hy(self, dfz: allowableData, KYA: allowableData, KYCO: allowableData, gamma_star: allowableData, S_VYg: allowableData, zeta_0, zeta_4) -> allowableData:
         """Finds the horizontal shift for the side force."""
 
@@ -1835,6 +1849,7 @@ class MF61(TyreBase):
                 / (KYA + self.eps_K) * zeta_0 + zeta_4 - 1.0)
         return S_HY
 
+    # MOVED
     def __find_s_vy(self, FZ: allowableData, dfz: allowableData, gamma_star: allowableData, LMUY_prime: allowableData, zeta_2) -> allowableData:
         """Finds the vertical shifts for the side force."""
 
@@ -2025,10 +2040,11 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # TURN SLIP EXTENSION
 
-    # TODO
+    # MOVED
     def __find_zeta_1(self):
         pass
 
+    # MOVED
     def __find_zeta_2(self, SA: allowableData, FZ: allowableData, PHI: allowableData) -> allowableData:
         """Peak side force reduction for turn slip extension."""
 
@@ -2045,6 +2061,7 @@ class MF61(TyreBase):
         zeta_2 = self.cos(self.atan(BYP * (R0 * np.abs(PHI) + self.PDYP4 * np.sqrt(R0 * np.abs(PHI)))))
         return zeta_2
 
+    # MOVED
     def __find_zeta_3(self, PHI: allowableData) -> allowableData:
         """Slope reduction factor for turn slip extension."""
 
@@ -2054,6 +2071,7 @@ class MF61(TyreBase):
         zeta_3 = self.cos(self.atan(self.PKYP1 * R0 ** 2 * PHI ** 2))
         return zeta_3
 
+    # MOVED
     def __find_zeta_4(
             self,
             FZ:  allowableData,
@@ -2124,6 +2142,7 @@ class MF61(TyreBase):
         zeta_4 = 1.0 + S_HYP - S_VYg / KYA_prime
         return zeta_4
 
+    # MOVED
     def __find_zeta_5(self, PHI: allowableData) -> allowableData:
         """spin moment decay due to turn slip."""
         # unpack tyre properties
@@ -2133,14 +2152,15 @@ class MF61(TyreBase):
         zeta_5 = self.cos(self.atan(self.QDTP1 * R0 * PHI))
         return zeta_5
 
-    # TODO
+    # MOVED
     def __find_zeta_6(self):
         pass
 
-    # TODO
+    # MOVED
     def __find_zeta_7(self):
         pass
 
+    # MOVED
     def __find_zeta_8(self, FZ, P, IA, VS, angle_unit):
 
         # unpack tyre properties

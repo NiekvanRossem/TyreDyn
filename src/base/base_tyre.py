@@ -5,8 +5,8 @@ from src.utils.misc import allowableData
 
 class TyreBase:
     """
-    Base template for tyre classes. This class contains all the methods that need to be defined in the subclasses. Do
-    not use this class directly.
+    Base template for tyre classes. This class contains the methods that are shared between the subclasses. Do not use
+    this class directly.
     """
 
     def __init_from_data__(self, params: dict, **settings):
@@ -32,8 +32,7 @@ class TyreBase:
                 else:
                     self._params_flat[k] = v
 
-
-        # correct trigonometry functions for TIR files fitted in degrees. TODO: implement
+        # correct trigonometry functions for TIR files fitted in degrees EXPERIMENTAL
         if self._units["ANGLE"] in ["rad", "radian", "radians"]:
             self.sin = lambda x: np.sin(x)
             self.cos = lambda x: np.cos(x)
@@ -133,3 +132,28 @@ class TyreBase:
             main(FZ, self.FZMIN, self.FZMAX, "Vertical load")
         except KeyError or TypeError:
             pass
+
+    @staticmethod
+    def _format_check(data: Union[allowableData, list[allowableData]]) -> allowableData:
+        """
+        Checks the shape of the input data, and flattens them to 1D arrays if needed.
+
+        :param data: input array.
+        :return: ``data`` -- flattened into 1D array.
+        """
+
+        # if a list of channels is passed
+        if isinstance(data, list):
+            for i, channel in enumerate(data):
+                if isinstance(channel, np.ndarray):
+                    if channel.ndim == 2:
+                        assert channel.shape[1] == 1, "Please input a 1D array."
+                        data[i] = channel.flatten()
+
+        # if just a single channel is passed
+        else:
+            if isinstance(data, np.ndarray):
+                if data.ndim == 2:
+                    assert data.shape[1] == 1, "Please input a 1D array."
+                    data = data.flatten()
+        return data

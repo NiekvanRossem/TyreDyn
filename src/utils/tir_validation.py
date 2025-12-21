@@ -325,10 +325,12 @@ class TIRValidation(BaseModel):
         print(f"Validation of TIR file successful. All parameters found for version {fittyp}")
         return validated
 
+"""
 def validate_data(params):
-    """
+    \"""
     Validate the TIR file.
 
     :param params: Dictionary of parameter names and values.
-    """
+    \"""
     TIRValidation.validate_with_model(params)
+"""
