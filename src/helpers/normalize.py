@@ -13,7 +13,7 @@ class Normalize:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def __find_dfz(self, FZ: allowableData) -> allowableData:
+    def _find_dfz(self, FZ: allowableData) -> allowableData:
         """Finds the normalized vertical load."""
 
         # unpack parameters

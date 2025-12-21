@@ -23,17 +23,17 @@ class TurnSlip:
         return getattr(self._model, name)
 
     # TODO
-    def __find_zeta_1(self):
+    def _find_zeta_1(self):
         pass
 
-    def __find_zeta_2(self, SA: allowableData, FZ: allowableData, PHI: allowableData) -> allowableData:
+    def _find_zeta_2(self, SA: allowableData, FZ: allowableData, PHI: allowableData) -> allowableData:
         """Peak side force reduction for turn slip extension."""
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
 
         # normalize vertical load
-        dfz = self.normalize.__find_dfz(FZ)
+        dfz = self.normalize._find_dfz(FZ)
 
         # sharpness factor (4.78)
         BYP = self.PDYP1 * (1.0 + self.PDYP2 * dfz) * self.cos(self.atan(self.PDYP3 * self.tan(SA)))
@@ -42,7 +42,7 @@ class TurnSlip:
         zeta_2 = self.cos(self.atan(BYP * (R0 * np.abs(PHI) + self.PDYP4 * np.sqrt(R0 * np.abs(PHI)))))
         return zeta_2
 
-    def __find_zeta_3(self, PHI: allowableData) -> allowableData:
+    def _find_zeta_3(self, PHI: allowableData) -> allowableData:
         """Slope reduction factor for turn slip extension."""
 
         # unpack tyre properties
@@ -51,7 +51,7 @@ class TurnSlip:
         zeta_3 = self.cos(self.atan(self.PKYP1 * R0 ** 2 * PHI ** 2))
         return zeta_3
 
-    def __find_zeta_4(
+    def _find_zeta_4(
             self,
             FZ:  allowableData,
             P:   allowableData,
@@ -69,13 +69,13 @@ class TurnSlip:
         VX = VCX
 
         # corrected camber angle
-        gamma_star = self.correction.__find_gamma_star(IA)
+        gamma_star = self.correction._find_gamma_star(IA)
 
         # normalize load
-        dfz = self.normalize.__find_dfz(FZ)
+        dfz = self.normalize._find_dfz(FZ)
 
         # difference between camber and turn slip response
-        eps_y = self.common.__find_eps_y(FZ)
+        eps_y = self.common._find_eps_y(FZ)
 
         # cornering stiffness
         KYA = self.gradients.find_cornering_stiffness(FZ, P, IA, PHI, angle_unit)
@@ -111,17 +111,17 @@ class TurnSlip:
         S_HYP = DHYP * self.sin(CHYP * self.atan(PHI_corr - EHYP * (PHI_corr - self.atan(PHI_corr)))) * np.sign(VX)
 
         # degressive friction factor (4.E8)
-        LMUY_star  = self.correction.__find_lmu_star(VS, V0, self.LMUY)
-        LMUY_prime = self.correction.__find_lmu_prime(LMUY_star)
+        LMUY_star  = self.correction._find_lmu_star(VS, V0, self.LMUY)
+        LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # vertical shift
-        S_VYg, _ = self.common.__find_s_vy(FZ, dfz, gamma_star, LMUY_prime, zeta_2)
+        S_VYg, _ = self.common._find_s_vy(FZ, dfz, gamma_star, LMUY_prime, zeta_2)
 
         # (4.84)
         zeta_4 = 1.0 + S_HYP - S_VYg / KYA_prime
         return zeta_4
 
-    def __find_zeta_5(self, PHI: allowableData) -> allowableData:
+    def _find_zeta_5(self, PHI: allowableData) -> allowableData:
         """spin moment decay due to turn slip."""
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -131,14 +131,14 @@ class TurnSlip:
         return zeta_5
 
     # TODO
-    def __find_zeta_6(self):
+    def _find_zeta_6(self):
         pass
 
     # TODO
-    def __find_zeta_7(self):
+    def _find_zeta_7(self):
         pass
 
-    def __find_zeta_8(self, FZ, P, IA, VS, angle_unit):
+    def _find_zeta_8(self, FZ, P, IA, VS, angle_unit):
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -148,7 +148,7 @@ class TurnSlip:
         FZ0_prime = FZ0 * self.LFZO
 
         # normalize load
-        dfz = self.normalize.__find_dfz(FZ)
+        dfz = self.normalize._find_dfz(FZ)
 
         # lateral friction coefficient
         mu_y = self.friction.find_mu_y(FZ, P, IA, VS, angle_unit)

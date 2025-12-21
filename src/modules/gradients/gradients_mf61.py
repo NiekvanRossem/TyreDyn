@@ -15,6 +15,7 @@ class GradientsMF61:
         self.correction = model.correction
         self.normalize  = model.normalize
 
+        # other modules
         self.turn_slip  = model.turn_slip
 
     def __getattr__(self, name):
@@ -42,7 +43,7 @@ class GradientsMF61:
 
         # turn slip correction
         if self._use_turn_slip is True and PHI is not None:
-            zeta_3 = self.turn_slip.__find_zeta_3(PHI)
+            zeta_3 = self.turn_slip._find_zeta_3(PHI)
         else:
             zeta_3 = self.zeta_3_default
 
@@ -60,10 +61,10 @@ class GradientsMF61:
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # corrected camber angle
-        gamma_star = self.correction.__find_gamma_star(IA)
+        gamma_star = self.correction._find_gamma_star(IA)
 
         # normalize pressure
-        dpi = self.normalize.__find_dpi(P)
+        dpi = self.normalize._find_dpi(P)
 
         # scaled nominal load
         FZ0_prime = FZ0 * self.LFZO
@@ -92,8 +93,8 @@ class GradientsMF61:
             FZ, P = self._format_check([FZ, P])
 
         # normalize pressure and load
-        dfz = self.normalize.__find_dfz(FZ)
-        dpi = self.normalize.__find_dpi(P)
+        dfz = self.normalize._find_dfz(FZ)
+        dpi = self.normalize._find_dpi(P)
 
         # slip stiffness (4.E15)
         KXK = (FZ * (self.PKX1 + self.PKX2 * dfz) * np.exp(self.PKX3 * dfz)
@@ -118,8 +119,8 @@ class GradientsMF61:
             FZ, P = self._format_check([FZ, P])
 
         # normalize pressure and load
-        dfz = self.normalize.__find_dfz(FZ)
-        dpi = self.normalize.__find_dpi(P)
+        dfz = self.normalize._find_dfz(FZ)
+        dpi = self.normalize._find_dpi(P)
 
         # camber stiffness (4.E30)
         KYCO = FZ * (self.PKY6 + self.PKY7 * dfz) * (1.0 - self.PPY5 * dpi) * self.LKYC
@@ -136,7 +137,7 @@ class GradientsMF61:
         :return:
         """
 
-        # instantaneous cornering stiffness (from MFeval)
+        # instantaneous cornering stiffness (not defined in the book, method from MFeval)
         iKYA = np.gradient(FY, SA)
         return iKYA
 

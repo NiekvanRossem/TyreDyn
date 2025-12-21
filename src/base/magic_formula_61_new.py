@@ -1,13 +1,22 @@
+from src.base.base_tyre import TyreBase
+
+# import helper modules
 from src.helpers.common_mf61 import CommonMF61
 from src.helpers.corrections import CorrectionsMF61
 from src.helpers.normalize import Normalize
+from src.modules.contact_patch.contact_patch_mf61 import ContactPatchMF61
 
+# import modules
 from src.modules.forces.forces_mf61 import ForcesMF61
 from src.modules.gradients.gradients_mf61 import GradientsMF61
+from src.modules.radius_and_deflection.radius_mf61 import RadiusMF61
+from src.modules.relaxation.relaxation_mf61 import RelaxationMF61
 from src.modules.turn_slip.turn_slip import TurnSlip
 from src.modules.friction_coefficient.friction_mf61 import FrictionMF61
-
-from src.base.base_tyre import TyreBase
+from src.modules.trail.trail_mf61 import TrailMF61
+from src.modules.moments.moments_mf61 import MomentsMF61
+from src.modules.contact_patch.contact_patch_mf61 import ContactPatchMF61
+from src.modules.radius_and_deflection.radius_mf61 import RadiusMF61
 
 class MF61new(TyreBase):
     """
@@ -31,7 +40,7 @@ class MF61new(TyreBase):
         # run the initialization from the base class
         super().__init_from_data__(data, **settings)
 
-        # turn slip correction factors if turn slip is disabled
+        # turn slip correction factors if turn slip is disabled TODO: make loop
         self.zeta_0_default = 1.0
         self.zeta_1_default = 1.0
         self.zeta_2_default = 1.0
@@ -54,12 +63,18 @@ class MF61new(TyreBase):
         self.A_mu = 10.0
 
         # import helper functions
-        self.corrections    = CorrectionsMF61(self)
-        self.normalize      = Normalize(self)
+        self.correction = CorrectionsMF61(self)
+        self.normalize  = Normalize(self)
+        self.common     = CommonMF61(self)
 
         # import modules
-        self.forces         = ForcesMF61(self)
-        self.moments        = MomentsMF61(self)
-        self.friction_coeff = FrictionMF61(self)
-        self.gradients      = GradientsMF61(self)
-        self.turn_slip      = TurnSlip(self)
+        self.turn_slip      = TurnSlip(self)            # depends only on helper functions
+        self.friction       = FrictionMF61(self)        # depends only on helper functions
+        self.stiffness      = StiffnessMF61(self)       # depends only on helper functions
+        self.contact_patch  = ContactPatchMF61(self)    # depends on stiffness
+        self.radius         = RadiusMF61(self)          # depends on stiffness
+        self.trail          = TrailMF61(self)           # depends on turn slip
+        self.gradients      = GradientsMF61(self)       # depends on turn slip
+        self.relaxation     = RelaxationMF61(self)      # depends on stiffness and gradient
+        self.forces         = ForcesMF61(self)          # depends on turn slip, gradients, and forces
+        self.moments        = MomentsMF61(self)         # depends on turn slip, friction, trail, gradients, and forces

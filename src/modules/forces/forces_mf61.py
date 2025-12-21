@@ -11,15 +11,15 @@ class ForcesMF61:
         """Make the properties of the overarching ``MF61`` class and other modules available."""
         self._model = model
 
+        # helper functions
+        self.correction = model.correction
+        self.normalize  = model.normalize
+        self.common     = model.common
+
         # other modules used
         self.friction   = model.friction
         self.gradients  = model.gradients
         self.turn_slip  = model.turn_slip
-
-        # helper functions
-        self.common     = model.common
-        self.correction = model.correction
-        self.normalize  = model.normalize
 
     def __getattr__(self, name):
         """Make the tyre coefficients directly available."""
@@ -49,6 +49,12 @@ class ForcesMF61:
         :return: ``FX`` -- longitudinal force for pure slip.
         """
 
+        PHI = None
+        if self._use_turn_slip is True and PHI is not None:
+            zeta_1 = self.turn_slip._find_zeta_1 # TODO
+        else:
+            zeta_1 = self.zeta_1_default
+
         # set default values for optional arguments
         P = self.INFLPRES if P is None else P
 
@@ -67,19 +73,19 @@ class ForcesMF61:
         V0 = self.LONGVL
 
         # normalize inputs
-        dfz = self.normalize.__find_dfz(FZ)
+        dfz = self.normalize._find_dfz(FZ)
 
         # composite friction scaling factor (4.E7)
-        LMUX_star = self.correction.__find_lmu_star(VS, V0, self.LMUX)
+        LMUX_star = self.correction._find_lmu_star(VS, V0, self.LMUX)
 
         # degressive friction factor (4.E8)
-        LMUX_prime = self.correction.__find_lmu_prime(LMUX_star)
+        LMUX_prime = self.correction._find_lmu_prime(LMUX_star)
 
         # horizontal shift (4.E17)
         S_HX = (self.PHX1 + self.PHX2 * dfz) * self.LHX
 
         # vertical shift (4.E18)
-        S_VX = FZ * (self.PVX1 + self.PVX2 * dfz) * self.LVX * LMUX_prime * self.zeta_1
+        S_VX = FZ * (self.PVX1 + self.PVX2 * dfz) * self.LVX * LMUX_prime * zeta_1
 
         # corrected slip ratio (4.E10)
         kappa_x = SL + S_HX
@@ -91,7 +97,7 @@ class ForcesMF61:
         mu_x = self.friction.find_mu_x(FZ, P, IA, VS, angle_unit)
 
         # peak factor (4.E12)
-        D_X = mu_x * FZ * self.zeta_1
+        D_X = mu_x * FZ * zeta_1
 
         # curvature factor (4.E14)
         E_X = (self.PEX1 + self.PEX2 * dfz + self.PEX3 * dfz ** 2) * (1.0 - self.PEX4 * np.sign(kappa_x)) * self.LEX
@@ -144,17 +150,17 @@ class ForcesMF61:
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # normalized vertical load
-        dfz = self.normalize.__find_dfz(FZ)
+        dfz = self.normalize._find_dfz(FZ)
 
         # horizontal shift (4.E57)
         S_HXA = self.RHX1
 
         # corrected slip angles (4.E53)
-        alpha_star = self.correction.__find_alpha_star(SA, VCX)
+        alpha_star = self.correction._find_alpha_star(SA, VCX)
         alpha_s = alpha_star + S_HXA
 
         # corrected camber angle (4.E4)
-        gamma_star = self.correction.__find_gamma_star(IA)
+        gamma_star = self.correction._find_gamma_star(IA)
 
         # stiffness factor (4.E54) -- slip ratio trig functions do not get corrected to degrees
         B_XA = (self.RBX1 + self.RBX3 * gamma_star ** 2) * np.cos(np.atan2(self.RBX2 * SL, 1)) * self.LXAL
@@ -210,7 +216,7 @@ class ForcesMF61:
         # turn slip correction
         if self._use_turn_slip is True and PHI is not None:
             zeta_0 = 0.0  # (4.83)
-            zeta_2 = self.turn_slip.__find_zeta_2(SA, FZ, PHI)
+            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
         else:
             zeta_0 = self.zeta_0_default
             zeta_2 = self.zeta_2_default
@@ -227,23 +233,22 @@ class ForcesMF61:
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # find normalized load and pressure
-        dfz = self.normalize.__find_dfz(FZ)
-        dpi = self.normalize.__find_dpi(P)
+        dfz = self.normalize._find_dfz(FZ)
 
         # allows for large slip angles and reverse running (4.E3)
-        alpha_star = self.correction.__find_alpha_star(SA, VCX)
+        alpha_star = self.correction._find_alpha_star(SA, VCX)
 
         # for spin due to camber angle (4.E4)
-        gamma_star = self.correction.__find_gamma_star(IA)
+        gamma_star = self.correction._find_gamma_star(IA)
 
         # reference speed
         V0 = self.LONGVL
 
         # composite friction scaling factor (4.E7)
-        LMUY_star = self.correction.__find_lmu_star(VS, V0, self.LMUY)
+        LMUY_star = self.correction._find_lmu_star(VS, V0, self.LMUY)
 
         # degressive friction factor (4.E8)
-        LMUY_prime = self.correction.__find_lmu_prime(LMUY_star)
+        LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # cornering stiffness (4.E25)
         KYA = self.gradients.find_cornering_stiffness(FZ, P, IA, PHI, angle_unit)
@@ -252,29 +257,29 @@ class ForcesMF61:
         KYCO = self.gradients.find_camber_stiffness(FZ, P)
 
         # vertical shifts (4.E29)
-        S_VY, S_VYg = self.common.__find_s_vy(FZ, dfz, gamma_star, LMUY_prime, zeta_2)
+        S_VY, S_VYg = self.common._find_s_vy(FZ, dfz, gamma_star, LMUY_prime, zeta_2)
 
         # horizontal shift (4.E27)
-        S_HY = self.common.__find_s_hy(dfz, KYA, KYCO, gamma_star, S_VYg, zeta_0, zeta_4)
+        S_HY = self.common._find_s_hy(dfz, KYA, KYCO, gamma_star, S_VYg, zeta_0, zeta_4)
 
         # corrected slip angle (4.E20)
         alpha_y = alpha_star + S_HY
 
         # shape factor (4.E21)
-        C_Y = self.common.__find_cy()
+        C_Y = self.common._find_cy()
 
         # friction coefficient (4.E23)
         mu_y = self.friction.find_mu_y(FZ, P, IA, VS, angle_unit)
 
         # peak factor (4.E22)
-        D_Y = self.common.__find_dy(mu_y, FZ, zeta_2)
+        D_Y = self.common._find_dy(mu_y, FZ, zeta_2)
 
         # curvature factor (4.E24)
         E_Y = (self.PEY1 + self.PEY2 * dfz) * (1.0 + self.PEY5 * gamma_star ** 2 - (self.PEY3 + self.PEY4 * gamma_star)
                                                * np.sign(alpha_y)) * self.LEY
 
         # stiffness factor (4.E26)
-        B_Y = self.common.__find_by(FZ, KYA, C_Y, D_Y)
+        B_Y = self.common._find_by(FZ, KYA, C_Y, D_Y)
 
         # lateral force (4.E19)
         FY = D_Y * self.sin(C_Y * self.atan(B_Y * alpha_y - E_Y * (B_Y * alpha_y - self.atan(B_Y * alpha_y)))) + S_VY
@@ -310,7 +315,7 @@ class ForcesMF61:
 
         # turn slip correction
         if self._use_turn_slip is True and PHI is not None:
-            zeta_2 = self.turn_slip.__find_zeta_2(SA, FZ, PHI)
+            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
         else:
             zeta_2 = self.zeta_2_default
 
@@ -326,13 +331,13 @@ class ForcesMF61:
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # normalized vertical load
-        dfz = self.normalize.__find_dfz(FZ)
+        dfz = self.normalize._find_dfz(FZ)
 
         # corrected slip angle (4.E53)
-        alpha_star = self.correction.__find_alpha_star(SA, VCX)
+        alpha_star = self.correction._find_alpha_star(SA, VCX)
 
         # corrected camber angle (4.E4)
-        gamma_star = self.correction.__find_gamma_star(IA)
+        gamma_star = self.correction._find_gamma_star(IA)
 
         # side force for pure slip
         FY0 = self.find_fy_pure(SA, FZ, P, IA, VCX, VS, PHI, angle_unit)

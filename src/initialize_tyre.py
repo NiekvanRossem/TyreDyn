@@ -3,9 +3,6 @@ from src.utils.paths import TYRE_DIR
 from src.utils.misc import *
 from src.utils.tir_validation import TIRValidation
 
-#from src.utils.read_file import read_tir
-#from src.utils.tir_validation import validate_data
-
 class Tyre:
     """
     Initialization class for tyre tyre_models. This class contains the functions to read and validate a TIR file. Not
@@ -17,6 +14,7 @@ class Tyre:
       - ``print_status`` -- set to `False` if you don't want to print status messages after loading (default is `True`).
       - ``use_alpha_star`` -- slip angle correction for large angles and reverse running (default is ``True``).
       - ``use_gamma_star`` -- inclination angle correction for large angles (default is ``True``).
+      - ``use_turn_slip`` -- turn slip correction (default is ``False``).
       - ``use_lmu_star`` -- composite friction scaling factor with slip speed (default is ``True``).
 
     Currently supported tyre models:
@@ -58,6 +56,7 @@ class Tyre:
         # create instance of the new subclass
         obj = super().__new__(subclass)
         obj.__init_from_data__(params, **settings)
+        subclass.__init__(obj, params, **settings)
         if print_status:
             print(f"Tyre instance of type {subclass} successfully created.")
         return obj
@@ -131,14 +130,16 @@ class Tyre:
 # quick test script
 
 if __name__ == "__main__":
-    current_tyre = Tyre('car205_60R19.tir', validate=True, use_alpha_star=False, check_limits=False)
+    tyre = Tyre('car205_60R19.tir')
 
     FZ = 600
     SL = 0.1
-    FX = current_tyre.find_fx_pure(SL, FZ, angle_unit='deg')
-    RL = current_tyre.find_loaded_radius(FX, 0.0, FZ, 20.0)
-    print(f"== TEST OUTPUT == \n"
+
+    FX = tyre.forces.find_fx_pure(SL=SL, FZ=FZ, angle_unit="deg")
+
+    #RL = tyre.find_loaded_radius(FX, 0.0, FZ, 20.0)
+    print(f"=== TEST OUTPUT === \n"
           f"vertical load:  {FZ} N \n"
           f"slip ratio:     {SL} \n"
-          f"tractive force: {FX:.2f} N \n"
-          f"loaded_radius:  {RL:.2f} m")
+          f"tractive force: {FX:.2f} N \n")
+          #f"loaded_radius:  {RL:.2f} m")

@@ -53,11 +53,11 @@ class FrictionMF61:
         V0 = self.LONGVL
 
         # normalize pressure and load
-        dfz = self.normalize.__find_dfz(FZ)
-        dpi = self.normalize.__find_dpi(P)
+        dfz = self.normalize._find_dfz(FZ)
+        dpi = self.normalize._find_dpi(P)
 
         # composite friction scaling factor (4.E7)
-        LMUX_star = self.correction.__find_lmu_star(VS, V0, self.LMUX)
+        LMUX_star = self.correction._find_lmu_star(VS, V0, self.LMUX)
 
         # friction coefficient (4.E13)
         mu_x = ((self.PDX1 + self.PDX2 * dfz) * (1.0 + self.PPX3 * dpi + self.PPX4 * dpi ** 2)
@@ -98,14 +98,14 @@ class FrictionMF61:
         V0 = self.LONGVL
 
         # normalize pressure and load
-        dfz = self.normalize.__find_dfz(FZ)
+        dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize.__find_dpi(P)
 
         # corrected camber angle
-        gamma_star = self.correction.__find_gamma_star(IA)
+        gamma_star = self.correction._find_gamma_star(IA)
 
         # composite friction scaling factor (4.E7)
-        LMUY_star = self.correction.__find_lmu_star(VS, V0, self.LMUY)
+        LMUY_star = self.correction._find_lmu_star(VS, V0, self.LMUY)
 
         # lateral friction coefficient (4.E23)
         mu_y = ((self.PDY1 + self.PDY2 * dfz) * (1.0 + self.PPY3 * dpi + self.PPY4 * dpi ** 2)

@@ -19,6 +19,7 @@ class TyreBase:
         # store user settings
         self._use_alpha_star = settings.get('use_alpha_star', True)
         self._use_gamma_star = settings.get('use_gamma_star', True)
+        self._use_turn_slip  = settings.get('use_turn_slip', False)
         self._use_lmu_star   = settings.get('use_lmu_star', True)
         self._check_format   = settings.get('check_format', True)
         self._check_limits   = settings.get('check_limits', True)
@@ -50,10 +51,13 @@ class TyreBase:
 
     def __getattr__(self, item):
         """Make the tyre parameters available in the functions."""
-        try:
-            return self._params_flat[item]
-        except KeyError:
-            raise AttributeError(item)
+
+        params = object.__getattribute__(self, "_params_flat")
+
+        if item in params:
+            return params[item]
+        else:
+            raise AttributeError(f"{type(self).__name__} has no attribute '{item}'")
 
     def _angle_unit_check(self, sig_in: Union[allowableData, list[allowableData]], angle_unit: Literal["rad", "deg"]):
         """Checks for possible mismatches between the angle unit of the input arrays and the TIR file, and corrects them."""

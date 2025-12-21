@@ -138,7 +138,7 @@ class MF61(TyreBase):
 
         return FX
 
-    # TESTED
+    # MOVED
     def find_fy_pure(
             self,
             SA:  allowableData,
@@ -313,7 +313,7 @@ class MF61(TyreBase):
         FX = FX0 * GXA
         return FX
 
-    # TESTED
+    # MOVED
     def find_fy(
             self,
             SA:  allowableData,
@@ -407,7 +407,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # FREE ROLLING MOMENTS
 
-    # TESTED
+    # MOVED
     def find_mx_pure(
             self,
             SA:  allowableData,
@@ -451,6 +451,7 @@ class MF61(TyreBase):
         MX = self.__mx_main_routine(FY, FZ, P, IA)
         return MX
 
+    # MOVED
     def find_my_pure(
             self,
             SL: allowableData,
@@ -490,6 +491,7 @@ class MF61(TyreBase):
         MY = self.__my_main_routine(FX, FZ, P, IA, VX)
         return MY
 
+    # MOVED
     def find_mz_pure(
             self,
             SA:  allowableData,
@@ -562,7 +564,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # COMBINED SLIP MOMENTS
 
-    # TESTED
+    # MOVED
     def find_mx(
             self,
             SA:  allowableData,
@@ -608,6 +610,7 @@ class MF61(TyreBase):
         MX = self.__mx_main_routine(FY, FZ, P, IA)
         return MX
 
+    # MOVED
     def find_my(
             self,
             SA:  allowableData,
@@ -653,6 +656,7 @@ class MF61(TyreBase):
         MY = self.__my_main_routine(FX, FZ, P, IA, VX)
         return MY
 
+    # MOVED
     def find_mz(
             self,
             SA:  allowableData,
@@ -1011,6 +1015,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # TYRE RADII
 
+    # MOVED
     def find_deflection(
             self,
             FX: allowableData,
@@ -1078,6 +1083,7 @@ class MF61(TyreBase):
 
         return rho
 
+    # MOVED
     def find_effective_radius(
             self,
             FZ: allowableData,
@@ -1113,6 +1119,7 @@ class MF61(TyreBase):
         RE = R_omega - FZ0 / CZ * (self.FREFF * FZ / FZ0 + self.DREFF * np.atan2(self.BREFF * FZ / FZ0, 1))
         return RE
 
+    # MOVED
     def find_free_radius(self, N: allowableData) -> allowableData:
         """
         Finds the free rolling radius, which capture the tyre growth as it spins up. Calculations according to Pacejka's
@@ -1134,6 +1141,7 @@ class MF61(TyreBase):
         R_omega = R0 * (self.Q_RE0 + self.Q_V1 * (R0 * N / V0) ** 2)
         return R_omega
 
+    # MOVED
     def find_loaded_radius(
             self,
             FX: allowableData,
@@ -1269,6 +1277,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # TYRE STIFFNESS
 
+    # MOVED
     def find_lateral_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
         """
         Finds the lateral stiffness of the tyre, adjusted for load and pressure.
@@ -1294,6 +1303,7 @@ class MF61(TyreBase):
         Cy = Cy0 * (1.0 + self.PCFY1 * dfz + self.PCFY2 * dfz ** 2) * (1.0 + self.PCFY3 * dpi)
         return Cy
 
+    # MOVED
     def find_longitudinal_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
         """
         Finds the longitudinal stiffness of the tyre, adjusted for load and pressure.
@@ -1319,6 +1329,7 @@ class MF61(TyreBase):
         Cx = Cx0 * (1.0 + self.PCFX1 * dfz + self.PCFX2 * dfz ** 2) * (1.0 + self.PCFX3 * dpi)
         return Cx
 
+    # MOVED
     def find_vertical_stiffness(self, P: allowableData) -> allowableData:
         """
         Finds the vertical tyre stiffness, adjusted for pressure.
@@ -1346,6 +1357,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # CONTACT PATCH DIMENSIONS
 
+    # MOVED
     def find_contact_patch(self, FZ: allowableData) -> list[allowableData]:
         """
         Finds the contact patch dimensions.
@@ -1377,7 +1389,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # PNEUMATIC TRAIL
 
-    # TESTED
+    # MOVED
     def find_trail_pure(
             self,
             SA:  allowableData,
@@ -1433,6 +1445,7 @@ class MF61(TyreBase):
 
         return t
 
+    # MOVED
     def find_trail(
             self,
             SA:  allowableData,
@@ -1502,6 +1515,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # SLIP AND CAMBER STIFFNESS
 
+    # MOVED
     def find_cornering_stiffness(
             self,
             FZ:  allowableData,
@@ -1555,6 +1569,7 @@ class MF61(TyreBase):
                                              * (1.0 + self.PPY2 * dpi)))) * zeta_3 * self.LKY
         return KYA
 
+    # MOVED
     def find_slip_stiffness(self, FZ: allowableData, P:  allowableData = None) -> allowableData:
         """
         Finds the longitudinal slip stiffness at zero slip ratio for pure slip conditions.
@@ -1581,6 +1596,7 @@ class MF61(TyreBase):
                * (1.0 + self.PPX1 * dpi + self.PPX2 * dpi ** 2) * self.LKX)
         return KXK
 
+    # MOVED
     def find_camber_stiffness(self, FZ: allowableData, P:  allowableData = None) -> allowableData:
         """
         Finds the camber stiffness. Calculations according to  Pacejka's MF 6.1.2 model.
@@ -1606,6 +1622,7 @@ class MF61(TyreBase):
         KYCO = FZ * (self.PKY6 + self.PKY7 * dfz) * (1.0 - self.PPY5 * dpi) * self.LKYC
         return KYCO
 
+    # MOVED
     @staticmethod
     def find_instant_kya(SA: allowableData, FY: allowableData) -> allowableData:
         """
@@ -1621,6 +1638,7 @@ class MF61(TyreBase):
         iKYA = np.gradient(FY, SA)
         return iKYA
 
+    # MOVED
     @staticmethod
     def find_instant_kxk(SL: allowableData, FX: allowableData) -> allowableData:
         """
@@ -1640,6 +1658,7 @@ class MF61(TyreBase):
     #------------------------------------------------------------------------------------------------------------------#
     # RELAXATION LENGTHS
 
+    # MOVED
     def find_lateral_relaxation(
             self,
             FZ:  allowableData,
@@ -1679,6 +1698,7 @@ class MF61(TyreBase):
         sigma_y = KYA / Cy
         return sigma_y
 
+    # MOVED
     def find_longitudinal_relaxation(
             self,
             FZ: allowableData,
@@ -1778,6 +1798,7 @@ class MF61(TyreBase):
         dpi = (P - P0) / P0
         return dpi
 
+    # MOVED
     def __find_dt0(self, FZ: allowableData, dfz: allowableData, dpi: allowableData, VCX: allowableData, FZ0_prime: allowableData, R0: Union[int, float]) -> allowableData:
         """Finds the static peak factor."""
 
@@ -1860,6 +1881,7 @@ class MF61(TyreBase):
         S_VY = FZ * (self.PVY1 + self.PVY2 * dfz) * self.LVY * LMUY_prime * zeta_2 + S_VYg
         return S_VYg, S_VY
 
+    # MOVED
     def __mx_main_routine(self, FY: allowableData, FZ: allowableData, P: allowableData, IA: allowableData) -> allowableData:
         """Function containing the main ``MX`` calculation routine. To be used in ``find_mx`` and ``find_mx_pure``."""
 
@@ -1881,6 +1903,7 @@ class MF61(TyreBase):
 
         return MX
 
+    # MOVED
     def __my_main_routine(self, FX: allowableData, FZ: allowableData, P: allowableData, IA: allowableData, VX: allowableData) -> allowableData:
         """Function containing the main ``MY`` calculation routine. To be used in ``find_my`` and ``find_my_pure``."""
 
@@ -1902,6 +1925,7 @@ class MF61(TyreBase):
 
         return MY
 
+    # MOVED
     def __mz_main_routine(self, SA: allowableData, SL: allowableData, FZ: allowableData, P: allowableData, IA: allowableData, VC: allowableData, VCX: allowableData, VS: allowableData, PHI, zeta_0, zeta_2, zeta_4, combined_slip: bool = False, angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """Function containing the main ``MZ`` calculation routine. Used in ``find_mz`` and ``find_mz_pure``."""
 
@@ -1988,6 +2012,7 @@ class MF61(TyreBase):
 
         return MZR
 
+    # MOVED
     def __trail_main_routine(self, SA: allowableData, FZ: allowableData, P: allowableData, IA: allowableData, VCX: allowableData, VS: allowableData, zeta_5) -> list[allowableData]:
         """Function containing the main calculations for the pneumatic trail. To be used in ``find_trail`` and ``find_trail_pure``."""
 
