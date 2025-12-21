@@ -18,7 +18,7 @@ class ForcesMF61:
 
         # other modules used
         self.friction   = model.friction
-        self.gradients  = model.gradients
+        self.gradient   = model.gradient
         self.turn_slip  = model.turn_slip
 
     def __getattr__(self, name):
@@ -103,7 +103,7 @@ class ForcesMF61:
         E_X = (self.PEX1 + self.PEX2 * dfz + self.PEX3 * dfz ** 2) * (1.0 - self.PEX4 * np.sign(kappa_x)) * self.LEX
 
         # slip stiffness (4.E15)
-        KXK = self.gradients.find_slip_stiffness(FZ, P)
+        KXK = self.gradient.find_slip_stiffness(FZ, P)
 
         # stiffness factor (4.E16)
         B_X = KXK / (C_X * D_X + self.eps_x)
@@ -213,13 +213,15 @@ class ForcesMF61:
             ``FY`` -- side force.
         """
 
-        # turn slip correction
+        # turn slip correction TODO: move after default values
         if self._use_turn_slip is True and PHI is not None:
             zeta_0 = 0.0  # (4.83)
             zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
         else:
             zeta_0 = self.zeta_0_default
             zeta_2 = self.zeta_2_default
+            zeta_4 = self.zeta_4_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
@@ -251,10 +253,10 @@ class ForcesMF61:
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # cornering stiffness (4.E25)
-        KYA = self.gradients.find_cornering_stiffness(FZ, P, IA, PHI, angle_unit)
+        KYA = self.gradient.find_cornering_stiffness(FZ, P, IA, PHI, angle_unit)
 
         # camber stiffness (4.E30)
-        KYCO = self.gradients.find_camber_stiffness(FZ, P)
+        KYCO = self.gradient.find_camber_stiffness(FZ, P)
 
         # vertical shifts (4.E29)
         S_VY, S_VYg = self.common._find_s_vy(FZ, dfz, gamma_star, LMUY_prime, zeta_2)

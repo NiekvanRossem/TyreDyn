@@ -99,7 +99,7 @@ class FrictionMF61:
 
         # normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
-        dpi = self.normalize.__find_dpi(P)
+        dpi = self.normalize._find_dpi(P)
 
         # corrected camber angle
         gamma_star = self.correction._find_gamma_star(IA)

@@ -1,4 +1,5 @@
 from src.utils.misc import allowableData
+from typing import Union
 import numpy as np
 
 class CommonMF61:

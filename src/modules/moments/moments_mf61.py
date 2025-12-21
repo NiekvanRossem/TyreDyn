@@ -141,9 +141,19 @@ class MomentsMF61:
 
         # turn slip correction
         if self._use_turn_slip is True and PHI is not None:
+            zeta_0 = 0.0  # (4.83)
             zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
+            zeta_6 = self.turn_slip._find_zeta_6() # TODO
+            zeta_7 = self.turn_slip._find_zeta_7()
+            zeta_8 = self.turn_slip._find_zeta_8(FZ, P, IA, VS, angle_unit)
         else:
+            zeta_0 = self.zeta_0_default
             zeta_2 = self.zeta_2_default
+            zeta_4 = self.zeta_4_default
+            zeta_6 = self.zeta_6_default
+            zeta_7 = self.zeta_7_default
+            zeta_8 = self.zeta_8_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
@@ -163,16 +173,15 @@ class MomentsMF61:
         # find side force
         FY = self.forces.find_fy_pure(SA, FZ, P, IA, VCX, VS, PHI, angle_unit)
 
-        # cornering stiffness to self aligning couple (4.E48) TODO: move to gradients and figure out their purpose
+        # cornering stiffness to self aligning couple (4.E48) TODO: move to gradient and figure out their purpose
         # KZAO = D_T0 * KYA
 
-        # camber stiffness to self aligning couple (4.E49) TODO: move to gradients and figure out their purpose
+        # camber stiffness to self aligning couple (4.E49) TODO: move to gradient and figure out their purpose
         # KZCO = FZ * R0 * (self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) * self.LKZC * LMUY_star - D_T0 * KYCO
 
         # residual self-aligning couple (4.E36)
-        MZR = self.__mz_main_routine(SA, 0.0, FZ, P, IA, VC, VCX, VS, PHI, zeta_0, zeta_2, zeta_4,
-                                     combined_slip=False,
-                                     angle_unit=angle_unit)
+        MZR = self.__mz_main_routine(SA, 0.0, FZ, P, IA, VC, VCX, VS, PHI, zeta_0, zeta_2, zeta_4, zeta_6, zeta_7,
+                                     zeta_8, combined_slip=False, angle_unit=angle_unit)
 
         # self-aligning couple due to pneumatic trail (4.E32)
         MZ_prime = - t * FY
@@ -309,9 +318,15 @@ class MomentsMF61:
         if self._use_turn_slip is True and PHI is not None:
             zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
             zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
+            zeta_6 = self.turn_slip._find_zeta_6() # TODO
+            zeta_7 = self.turn_slip._find_zeta_7()
+            zeta_8 = self.turn_slip._find_zeta_8(FZ, P, IA, VS, angle_unit)
         else:
             zeta_2 = self.zeta_2_default
             zeta_4 = self.zeta_4_default
+            zeta_6 = self.zeta_6_default
+            zeta_7 = self.zeta_7_default
+            zeta_8 = self.zeta_8_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
@@ -355,7 +370,9 @@ class MomentsMF61:
         MZ_prime = -t * FY_prime
 
         # residual self-aligning couple
-        MZR = self.__mz_main_routine(SA, SL, FZ, P, IA, VC, VCX, VS, PHI, zeta_0, zeta_2, zeta_4, combined_slip=True, angle_unit=angle_unit)
+        MZR = self.__mz_main_routine(SA, SL, FZ, P, IA, VC, VCX, VS, PHI,
+                                     zeta_0, zeta_2, zeta_4, zeta_6, zeta_7, zeta_8,
+                                     combined_slip=True, angle_unit=angle_unit)
 
         # final self-aligning couple (4.E71)
         MZ = MZ_prime + MZR + s * FX
@@ -428,7 +445,7 @@ class MomentsMF61:
             VCX: allowableData,
             VS:  allowableData,
             PHI: allowableData,
-            zeta_0, zeta_2, zeta_4,
+            zeta_0, zeta_2, zeta_4, zeta_6, zeta_7, zeta_8,
             combined_slip: bool = False,
             angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """Function containing the main ``MZ`` calculation routine. Used in ``find_mz`` and ``find_mz_pure``."""
@@ -499,17 +516,17 @@ class MomentsMF61:
         B_Y = self.common._find_by(FZ, KYA, C_Y, D_Y)
 
         # stiffness factor for the residual couple (4.E45)
-        B_R = (self.QBZ9 * self.LYKA / LMUY_star + self.QBZ10 * B_Y * C_Y) * self.zeta_6
+        B_R = (self.QBZ9 * self.LYKA / LMUY_star + self.QBZ10 * B_Y * C_Y) * zeta_6
 
         # shape factor for the residual couple (4.E46)
-        C_R = self.zeta_7
+        C_R = zeta_7
 
         # peak factor for residual couple (4.E47)
         D_R = (FZ * R0 * ((self.QDZ6 + self.QDZ7 * dfz) * self.LRES * zeta_2
                           + ((self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi)
                              + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(gamma_star))
                           * gamma_star * self.LKZC * zeta_0) * LMUY_star
-               * np.sign(VCX) * cos_prime_alpha + self.zeta_8 - 1.0)
+               * np.sign(VCX) * cos_prime_alpha + zeta_8 - 1.0)
 
         # residual self-aligning couple (4.E36)
         MZR = D_R * self.cos(C_R * self.atan(B_R * alpha_used)) * cos_prime_alpha

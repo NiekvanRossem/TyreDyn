@@ -17,8 +17,9 @@ from src.modules.trail.trail_mf61 import TrailMF61
 from src.modules.moments.moments_mf61 import MomentsMF61
 from src.modules.contact_patch.contact_patch_mf61 import ContactPatchMF61
 from src.modules.radius_and_deflection.radius_mf61 import RadiusMF61
+from src.modules.stiffness.stiffness_mf61 import StiffnessMF61
 
-class MF61new(TyreBase):
+class MF61(TyreBase):
     """
         Class definition for the Magic Formula 6.1 tyre model. Initialize an instance of this class by calling
         ``Tyre(<filename.tir>)``, where ``<filename.tir>`` is a TIR property file with ``FITTYP`` ``61`` or newer.
@@ -74,7 +75,7 @@ class MF61new(TyreBase):
         self.contact_patch  = ContactPatchMF61(self)    # depends on stiffness
         self.radius         = RadiusMF61(self)          # depends on stiffness
         self.trail          = TrailMF61(self)           # depends on turn slip
-        self.gradients      = GradientsMF61(self)       # depends on turn slip
+        self.gradient       = GradientsMF61(self)       # depends on turn slip
         self.relaxation     = RelaxationMF61(self)      # depends on stiffness and gradient
-        self.forces         = ForcesMF61(self)          # depends on turn slip, gradients, and forces
-        self.moments        = MomentsMF61(self)         # depends on turn slip, friction, trail, gradients, and forces
+        self.forces         = ForcesMF61(self)          # depends on turn slip, gradient, and forces
+        self.moments        = MomentsMF61(self)         # depends on turn slip, friction, trail, gradient, and forces
