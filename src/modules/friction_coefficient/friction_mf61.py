@@ -9,7 +9,7 @@ class FrictionMF61:
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model     = model
 
         # helper functions
@@ -28,15 +28,25 @@ class FrictionMF61:
             VS: allowableData = 0.0,
             angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
-        Finds the longitudinal friction coefficient.
+        Returns the longitudinal friction coefficient.
 
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: slip speed magnitude (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        angle_unit : str, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``mu_x`` -- longitudinal friction coefficient.
+        Returns
+        -------
+        mu_x : allowableData
+            Longitudinal friction coefficient.
         """
 
         # set default values for optional arguments
@@ -73,15 +83,25 @@ class FrictionMF61:
             VS: allowableData = 0.0,
             angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
-        Finds the lateral friction coefficient.
+        Returns the lateral friction coefficient.
 
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: slip speed magnitude (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        angle_unit : str, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``mu_y`` -- lateral friction coefficient.
+        Returns
+        -------
+        mu_y : allowableData
+            Lateral friction coefficient.
         """
 
         # set default values for optional arguments

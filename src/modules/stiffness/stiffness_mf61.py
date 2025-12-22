@@ -5,7 +5,7 @@ from typing import Literal
 class StiffnessMF61:
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # helper functions
@@ -17,12 +17,19 @@ class StiffnessMF61:
 
     def find_lateral_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
         """
-        Finds the lateral stiffness of the tyre, adjusted for load and pressure.
+        Returns the lateral stiffness of the tyre, adjusted for load and pressure.
 
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``Cy`` -- lateral stiffness.
+        Returns
+        -------
+        Cy : allowableData
+            Lateral tyre stiffness.
         """
 
         # check if arrays have the right dimension, and flatten if needed
@@ -42,12 +49,19 @@ class StiffnessMF61:
 
     def find_longitudinal_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
         """
-        Finds the longitudinal stiffness of the tyre, adjusted for load and pressure.
+        Returns the longitudinal stiffness of the tyre, adjusted for load and pressure.
 
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``Cx`` -- longitudinal stiffness.
+        Returns
+        -------
+        Cx : allowableData
+            Longitudinal tyre stiffness.
         """
 
         # check if arrays have the right dimension, and flatten if needed
@@ -67,11 +81,17 @@ class StiffnessMF61:
 
     def find_vertical_stiffness(self, P: allowableData) -> allowableData:
         """
-        Finds the vertical tyre stiffness, adjusted for pressure.
+        Returns the vertical stiffness of the tyre, adjusted for pressure.
 
-        :param P: tyre pressure.
+        Parameters
+        ----------
+        P : allowableData
+            Tyre pressure.
 
-        :return: ``CZ`` -- vertical tyre stiffness.
+        Returns
+        -------
+        Cz : allowableData
+            Vertical tyre stiffness.
         """
 
         # check if arrays have the right dimension, and flatten if needed

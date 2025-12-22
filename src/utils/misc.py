@@ -31,17 +31,24 @@ def check_format(data: Union[allowableData, list[allowableData]]) -> allowableDa
     return data
 """
 
+def inherit_docstring(source):
+    """Adds docstring of source method to target method. Written by ChatGPT."""
+    def decorator(target):
+        target.__doc__ = source.__doc__
+        return target
+    return decorator
+
 def normalize_fittyp(fittyp: str) -> str:
     """
-    Quick function that normalizes the FITTYP value. Can deal with the following input formats:
-    - MF 5.2
-    - MF5.2
-    - MF52
-    - 5.2
-    - 52
+    Quick function that normalizes the ``FITTYP`` value. Can deal with the following input formats:
+      - ``MF 5.2``
+      - ``MF5.2``
+      - ``MF52``
+      - ``5.2``
+      - ``52``
 
-    Outputs MF, followed by the model type (e.g. 5.2 or 6.2), so `52` becomes `MF5.2`.
-    Written by ChatGPT.
+    Outputs ``MF``, followed by the model type (e.g. ``5.2`` or ``6.2``), so ``52`` becomes ``MF5.2``.
+    Template provided by ChatGPT, and modified from there.
     """
 
     if not fittyp:

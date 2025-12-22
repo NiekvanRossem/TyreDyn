@@ -4,18 +4,16 @@ import numpy as np
 
 class CommonMF61:
     """
-    Module containing functions used in multiple other modules. MF 6.1.
+    Module containing functions used in multiple other modules of MF 6.1.
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # helper functions
         self.correction = model.correction
         self.normalize  = model.normalize
-
-        # CANNOT DEPEND ON TURN SLIP!
 
     def __getattr__(self, name):
         """Make the tyre coefficients directly available."""
@@ -30,7 +28,7 @@ class CommonMF61:
         return BY
 
     def _find_cy(self) -> allowableData:
-        """Finds the shape factor for the side force."""
+        """Finds the shape factor for the side force. Used in ``ForcesMF61`` and ``MomentsMF61``."""
 
         # (4.E21)
         CY = self.PCY1 * self.LCY
@@ -44,7 +42,7 @@ class CommonMF61:
             VCX:        allowableData,
             FZ0_prime:  allowableData,
             R0:         Union[int, float]) -> allowableData:
-        """Finds the static peak factor."""
+        """Finds the static peak factor. Used in ``TrailMF61``."""
 
         # (4.E42) TODO
         DT0 = FZ * (R0 / FZ0_prime) * (self.QDZ1 + self.QDZ2 * dfz) * (1.0 - self.PPZ1 * dpi) * self.LTR * np.sign(VCX)
@@ -52,13 +50,13 @@ class CommonMF61:
 
     @staticmethod
     def _find_dy(mu_y: allowableData, FZ: allowableData, zeta_2) -> allowableData:
-        """Finds the peak factor for the side force."""
+        """Finds the peak factor for the side force. Used in ``ForcesMF61`` and ``MomentsMF61``."""
 
         # (4.E22)
         DY = mu_y * FZ * zeta_2
         return DY
 
-    def _find_eps_y(self, FZ):
+    def _find_eps_y(self, FZ: allowableData) -> allowableData:
         """Difference between camber and turn slip response. Used internally and in ``TurnSlip``."""
 
         if self._use_turn_slip:
@@ -74,15 +72,28 @@ class CommonMF61:
 
         return eps_y
 
-    def _find_s_hy(self, dfz: allowableData, KYA: allowableData, KYCO: allowableData, gamma_star: allowableData, S_VYg: allowableData, zeta_0, zeta_4) -> allowableData:
-        """Finds the horizontal shift for the side force."""
+    def _find_s_hy(
+            self,
+            dfz:        allowableData,
+            KYA:        allowableData,
+            KYCO:       allowableData,
+            gamma_star: allowableData,
+            S_VYg:      allowableData,
+            zeta_0, zeta_4) -> allowableData:
+        """Finds the horizontal shift for the side force. Used in ``ForcesMF61`` and ``MomentsMF61``."""
 
         # (4.E27)
         S_HY = ((self.PHY1 + self.PHY2 * dfz) * self.LHY + (KYCO * gamma_star - S_VYg)
                 / (KYA + self.eps_K) * zeta_0 + zeta_4 - 1.0)
         return S_HY
 
-    def _find_s_vy(self, FZ: allowableData, dfz: allowableData, gamma_star: allowableData, LMUY_prime: allowableData, zeta_2) -> allowableData:
+    def _find_s_vy(
+            self,
+            FZ:         allowableData,
+            dfz:        allowableData,
+            gamma_star: allowableData,
+            LMUY_prime: allowableData,
+            zeta_2) -> allowableData:
         """Finds the vertical shifts for the side force. Used in ``ForcesMF61``, ``MomentsMF61``, and ``TurnSlip``."""
 
         # vertical shift due to camber (4.E28)

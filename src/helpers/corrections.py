@@ -41,7 +41,7 @@ class CorrectionsMF61:
         return lmu_prime
 
     def _find_lmu_star(self, VS: allowableData, V0: float, LMU: float) -> allowableData:
-        """Finds the composite friction scaling factor."""
+        """Finds the composite friction scaling factor, corrected for slip speed."""
 
         # (4.E7)
         if self._use_lmu_star:

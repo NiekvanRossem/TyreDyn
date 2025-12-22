@@ -36,4 +36,3 @@ class Normalize:
         # normalized pressure (4.E2b)
         dpi = (P - PO) / PO
         return dpi
-

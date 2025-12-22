@@ -8,7 +8,7 @@ class RelaxationMF61:
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # other modules
@@ -27,23 +27,30 @@ class RelaxationMF61:
             PHI: allowableData = None,
             angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
-        Finds the lateral relaxation length.
+        Returns the lateral relaxation length.
 
-        :param PHI:
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : str, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``sigma_y`` -- lateral relaxation length.
+        Returns
+        -------
+        sigma_y : allowableData
+            Lateral relaxation length.
         """
-
-        # set default value for optional arguments
-        P = self.INFLPRES if P is None else P
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            FZ, P, IA = self._format_check([FZ, P, IA])
+            FZ, IA = self._format_check([FZ, IA])
 
         # correct angle if mismatched between input array and TIR file
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
@@ -63,20 +70,24 @@ class RelaxationMF61:
             FZ: allowableData,
             P:  allowableData = None) -> allowableData:
         """
-        Finds the longitudinal relaxation length.
+        Returns the longitudinal relaxation length.
 
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``sigma_x`` -- longitudinal relaxation length.
+        Returns
+        -------
+        sigma_x : allowableData
+            Longitudinal relaxation length.
         """
-
-        # set default value for optional arguments
-        P = self.INFLPRES if P is None else P
-
+        
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            FZ, P = self._format_check([FZ, P])
+            FZ = self._format_check(FZ)
 
         # slip stiffness
         KXK = self.gradient.find_slip_stiffness(FZ, P)

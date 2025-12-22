@@ -41,18 +41,31 @@ class MomentsMF61:
             PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the overturning couple for pure slip conditions.
+        Returns the overturning couple for pure slip conditions.
 
-        :param PHI:
-        :param SA: slip angle.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: slip speed (optional, will default to zero if not specified).
-        :param VCX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``MX`` -- overturning couple.
+        Returns
+        -------
+        MX : allowableData
+            Overturning couple for pure slip conditions.
         """
 
         # set default values for optional arguments
@@ -61,7 +74,7 @@ class MomentsMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, FZ, P, IA, VCX, VS = self._format_check([SA, FZ, P, IA, VCX, VS])
+            SA, FZ, P, IA, VCX, VS = self._format_check([SA, FZ, P, IA, VCX, VS]) # TODO: add PHI to format check
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
@@ -82,16 +95,27 @@ class MomentsMF61:
             VX: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the rolling resistance couple for pure slip conditions.
+        Returns the rolling resistance couple for pure slip conditions.
 
-        :param SL: slip ratio.
-        :param FZ: vertical load.
-        :param VX: longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``MY`` -- rolling resistance couple.
+        Returns
+        -------
+        MY : allowableData
+            Rolling resistance couple for pure slip conditions.
         """
 
         # set default values for optional arguments
@@ -106,7 +130,7 @@ class MomentsMF61:
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # calculate FX
-        FX = self.forces.find_fx_pure(SL, FZ, P, IA, VS, angle_unit)
+        FX = self.forces.find_fx_pure(SL, FZ, P, IA, VS, PHI, angle_unit)
 
         # find rolling resistance moment
         MY = self.__my_main_routine(FX, FZ, P, IA, VX)
@@ -124,41 +148,40 @@ class MomentsMF61:
             PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the self-aligning couple for pure slip conditions.
+        Returns the self-aligning couple for pure slip conditions.
 
-        :param PHI:
-        :param SA: slip angle.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VC: contact patch speed (optional, will default to ``LONGVL`` if not specified).
-        :param VCX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param VS: slip speed (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VC : allowableData, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``MZ`` -- self-aligning couple.
+        Returns
+        -------
+        MZ : allowableData
+            Self-aligning couple for pure slip conditions.
         """
-
-        # turn slip correction
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_0 = 0.0  # (4.83)
-            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
-            zeta_6 = self.turn_slip._find_zeta_6() # TODO
-            zeta_7 = self.turn_slip._find_zeta_7()
-            zeta_8 = self.turn_slip._find_zeta_8(FZ, P, IA, VS, angle_unit)
-        else:
-            zeta_0 = self.zeta_0_default
-            zeta_2 = self.zeta_2_default
-            zeta_4 = self.zeta_4_default
-            zeta_6 = self.zeta_6_default
-            zeta_7 = self.zeta_7_default
-            zeta_8 = self.zeta_8_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
         VC  = self.LONGVL if VC is None else VC
         VCX = self.LONGVL if VCX is None else VCX
+        PHI = 0.0 if PHI is None else PHI
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -167,7 +190,23 @@ class MomentsMF61:
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
-        # pneumatic trail TODO
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_0 = 0.0  # (4.83)
+            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
+            zeta_6 = self.turn_slip._find_zeta_6()  # TODO
+            zeta_7 = self.turn_slip._find_zeta_7()
+            zeta_8 = self.turn_slip._find_zeta_8(FZ, P, IA, VS, angle_unit)
+        else:
+            zeta_0 = self.zeta_default
+            zeta_2 = self.zeta_default
+            zeta_4 = self.zeta_default
+            zeta_6 = self.zeta_default
+            zeta_7 = self.zeta_default
+            zeta_8 = self.zeta_default
+
+        # pneumatic trail
         t = self.trail.find_trail_pure(SA, FZ, P, IA, VC, VCX, VS, PHI, angle_unit)
 
         # find side force
@@ -195,7 +234,7 @@ class MomentsMF61:
     # COMBINED SLIP MOMENTS
 
     # TESTED
-    def find_mx(
+    def find_mx_combined(
             self,
             SA:  allowableData,
             SL:  allowableData,
@@ -207,19 +246,33 @@ class MomentsMF61:
             PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the overturning couple for combined slip conditions.
+        Returns the overturning couple for combined slip conditions.
 
-        :param PHI:
-        :param SA: slip angle
-        :param SL: slip ratio.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: ground speed (optional, will default to zero if not specified).
-        :param VCX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``MX`` -- overturning couple.
+        Returns
+        -------
+        MX : allowableData
+            Overturning couple for combined slip conditions.
         """
 
         # set default values for optional arguments
@@ -234,13 +287,13 @@ class MomentsMF61:
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # find side force
-        FY = self.forces.find_fy(SA, SL, FZ, P, IA, VCX, VS, PHI, angle_unit)
+        FY = self.forces.find_fy_combined(SA, SL, FZ, P, IA, VCX, VS, PHI, angle_unit)
 
         # find overturning couple
         MX = self.__mx_main_routine(FY, FZ, P, IA)
         return MX
 
-    def find_my(
+    def find_my_combined(
             self,
             SA: allowableData,
             SL: allowableData,
@@ -250,26 +303,35 @@ class MomentsMF61:
             VX: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the rolling resistance couple for combined slip conditions. Calculations according to Pacejka's MF 6.1.2
-        model.
+        Returns the rolling resistance couple for combined slip conditions.
 
-        :param SA: slip angle
-        :param SL: slip ratio.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VX : allowableData, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``MY`` -- rolling resistance couple.
+        Returns
+        -------
+        MY : allowableData
+            Rolling resistance couple for combined slip conditions.
         """
-
-        # assumed that difference between contact patch and wheel center speed is negligible as (eqn 7.4 from Pacejka)
-        VCX = self.LONGVL if VX is None else VX
 
         # set default values for optional arguments
         P  = self.INFLPRES if P is None else P
         VX = self.LONGVL if VX is None else VX
+        VCX = self.LONGVL if VX is None else VX # assumed that difference between contact patch and wheel center speed is negligible as (eqn 7.4 from Pacejka)
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -279,13 +341,13 @@ class MomentsMF61:
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # calculate FX
-        FX = self.forces.find_fx(SA, SL, FZ, P, IA, VS, VCX, angle_unit)
+        FX = self.forces.find_fx_combined(SA, SL, FZ, P, IA, VS, VCX, PHI, angle_unit)
 
         # find rolling resistance moment
         MY = self.__my_main_routine(FX, FZ, P, IA, VX)
         return MY
 
-    def find_mz(
+    def find_mz_combined(
             self,
             SA:  allowableData,
             SL:  allowableData,
@@ -298,40 +360,42 @@ class MomentsMF61:
             PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the self-aligning couple for combined slip conditions.
+        Returns the self-aligning couple for combined slip conditions.
 
-        :param PHI:
-        :param SA: slip angle.
-        :param SL: slip ratio.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VC: contact patch speed (optional, will default to ``LONGVL`` if not specified).
-        :param VCX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param VS: slip speed (optional, will default to ``LONGVL`` if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VC : allowableData, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Contact patch slip speed (will default to ``LONGVL`` if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``MZ`` -- self-aligning couple.
+        Returns
+        -------
+        MZ : allowableData
+            Self-aligning couple for combined slip conditions.
         """
-
-        # turn slip correction
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
-            zeta_6 = self.turn_slip._find_zeta_6() # TODO
-            zeta_7 = self.turn_slip._find_zeta_7()
-            zeta_8 = self.turn_slip._find_zeta_8(FZ, P, IA, VS, angle_unit)
-        else:
-            zeta_2 = self.zeta_2_default
-            zeta_4 = self.zeta_4_default
-            zeta_6 = self.zeta_6_default
-            zeta_7 = self.zeta_7_default
-            zeta_8 = self.zeta_8_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
         VC  = self.LONGVL if VC is None else VC
         VCX = self.LONGVL if VCX is None else VCX
+        PHI = 0.0 if PHI is None else PHI
 
         # unpack tyre properties
         R0  = self.UNLOADED_RADIUS
@@ -344,6 +408,20 @@ class MomentsMF61:
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
+            zeta_6 = self.turn_slip._find_zeta_6() # TODO
+            zeta_7 = self.turn_slip._find_zeta_7()
+            zeta_8 = self.turn_slip._find_zeta_8(FZ, P, IA, VS, angle_unit)
+        else:
+            zeta_2 = self.zeta_default
+            zeta_4 = self.zeta_default
+            zeta_6 = self.zeta_default
+            zeta_7 = self.zeta_default
+            zeta_8 = self.zeta_default
+
         # scaled nominal loads
         FZ0_prime = FZ0 * self.LFZO
 
@@ -354,11 +432,11 @@ class MomentsMF61:
         gamma_star = self.normalize._find_gamma_star(IA)
 
         # tyre forces
-        FX = self.forces.find_fx(SA, SL, FZ, P, IA, VCX, VS, angle_unit)
-        FY = self.forces.find_fy(SA, SL, FZ, P, IA, VCX, VS, PHI, angle_unit)
+        FX = self.forces.find_fx_combined(SA, SL, FZ, P, IA, VCX, VS, PHI, angle_unit)
+        FY = self.forces.find_fy_combined(SA, SL, FZ, P, IA, VCX, VS, PHI, angle_unit)
 
         # side force with zero camber (4.E74)
-        FY_prime = self.forces.find_fy(SA, SL, FZ, P, 0.0, VCX, VS, PHI, angle_unit)
+        FY_prime = self.forces.find_fy_combined(SA, SL, FZ, P, 0.0, VCX, VS, PHI, angle_unit)
 
         # pneumatic trail
         t = self.trail.find_trail(SA, SL, FZ, P, IA, VC, VCX, VS, PHI, angle_unit)
@@ -397,13 +475,13 @@ class MomentsMF61:
         dpi = self.normalize._find_dpi(P)
 
         # overturning couple (4.E69) -- FZ trig functions do not get corrected to degrees
-        A = self.QSX1 * self.LVMX # TODO rename to be more clear
-        B = self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
-        C = self.QSX3 * FY / FZ0
-        D = self.QSX4 * np.cos(self.QSX5 * np.atan2(self.QSX6 * FZ / FZ0, 1) ** 2)
-        E = np.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * FY / FZ0, 1))
-        F = self.QSX10 * np.atan2(self.QSX11 * FZ / FZ0, 1) * IA
-        MX = R0 * FZ * (A - B + C + D * E + F) * self.LMX
+        base_effect     = self.QSX1 * self.LVMX
+        pressure_effect = self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
+        fy_effect       = self.QSX3 * FY / FZ0
+        fz_effect       = self.QSX4 * np.cos(self.QSX5 * np.atan2(self.QSX6 * FZ / FZ0, 1) ** 2)
+        camber_effect_1 = np.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * FY / FZ0, 1))
+        camber_effect_2 = self.QSX10 * np.atan2(self.QSX11 * FZ / FZ0, 1) * IA
+        MX = R0 * FZ * (base_effect - pressure_effect + fy_effect + fz_effect * camber_effect_1 + camber_effect_2) * self.LMX
 
         return MX
 
@@ -423,14 +501,15 @@ class MomentsMF61:
         P0  = self.NOMPRES
 
         # rolling resistance moment (4.E70)
-        A = self.QSY1 # TODO rename to be more clear
-        B = self.QSY2 * FX / FZ0
-        C = self.QSY3 * np.abs(VX / V0)
-        D = self.QSY4 * (VX / V0) ** 4
-        E = (self.QSY5 + self.QSY6 * FZ / FZ0) * IA ** 2
-        F = (FZ / FZ0) ** self.QSY7
-        G = (P / P0) ** self.QSY8
-        MY = FZ * R0 * (A + B + C + D + E) * F * G * self.LMY
+        base_effect     = self.QSY1
+        fx_effect       = self.QSY2 * FX / FZ0
+        speed_effect_1  = self.QSY3 * np.abs(VX / V0)
+        speed_effect_2  = self.QSY4 * (VX / V0) ** 4
+        camber_effect   = (self.QSY5 + self.QSY6 * FZ / FZ0) * IA ** 2
+        fz_effect       = (FZ / FZ0) ** self.QSY7
+        pressure_effect = (P / P0) ** self.QSY8
+        MY = (FZ * R0 * (base_effect + fx_effect + speed_effect_1 + speed_effect_2 + camber_effect)
+              * fz_effect * pressure_effect * self.LMY)
 
         return MY
 

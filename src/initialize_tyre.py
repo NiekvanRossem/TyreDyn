@@ -135,7 +135,7 @@ if __name__ == "__main__":
     FZ = 600
     SL = 0.1
 
-    FX = tyre.forces.find_fx_pure(SL=SL, FZ=FZ, angle_unit="deg")
+    FX = tyre.forces.find_fx_pure(SL, FZ, P, IA, VS, PHI, angle_unit)
 
     #RL = tyre.find_loaded_radius(FX, 0.0, FZ, 20.0)
     print(f"=== TEST OUTPUT === \n"

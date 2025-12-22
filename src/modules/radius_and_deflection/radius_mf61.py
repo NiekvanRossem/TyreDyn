@@ -5,7 +5,7 @@ import numpy as np
 class RadiusMF61:
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # helper functions
@@ -26,15 +26,25 @@ class RadiusMF61:
             N:  allowableData,
             P:  allowableData = None) -> allowableData:
         """
-        Finds the vertical deflection of the tyre. A positive value signifies compression.
+        Returns the vertical deflection of the tyre. A positive value signifies compression.
 
-        :param FX: longitudinal force.
-        :param FY: lateral force.
-        :param FZ: vertical load.
-        :param N: wheel angular speed.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FX : allowableData
+            Longitudinal force.
+        FY : allowableData
+            Side force.
+        FZ : allowableData
+            Vertical load
+        N : allowableData
+            Angular speed of the wheel.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``rho`` -- vertical deflection of the tyre. Compression is positive.
+        Returns
+        -------
+        rho : allowableData
+            Vertical deflection.
         """
 
         # set default values for optional arguments
@@ -91,15 +101,23 @@ class RadiusMF61:
             N:  allowableData,
             P:  allowableData = None) -> allowableData:
         """
-        Finds the effective tyre radius, to be used for calculating the slip ratio.
+        Returns the effective tyre radius, to be used for calculating the slip ratio.
 
-        :param FZ: vertical load.
-        :param N: angular speed of the wheel.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        N : allowableData
+            Angular speed of the wheel.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``RE`` -- effective tyre radius.
+        Returns
+        -------
+        RE : allowableData
+            Effective tyre radius.
         """
-
+        
         # set default values for optional arguments
         P  = self.INFLPRES if P is None else P
 
@@ -122,10 +140,17 @@ class RadiusMF61:
 
     def find_free_radius(self, N: allowableData) -> allowableData:
         """
-        Finds the free rolling radius, which captures the tyre growth as it spins up.
+        Returns the free rolling radius, which captures the tyre growth as it spins up.
 
-        :param N: angular speed of the wheel.
-        :return: ``R_omega`` -- free rolling radius.
+        Parameters
+        ----------
+        N : allowableData
+            Angular speed of the wheel.
+
+        Returns
+        -------
+        R_omega : allowableData
+            Free rolling radius.
         """
 
         # check if arrays have the right dimension, and flatten if needed
@@ -148,15 +173,25 @@ class RadiusMF61:
             N:  allowableData,
             P:  allowableData = None) -> allowableData:
         """
-        Finds the loaded radius of the tyre. Calculations according to Pacejka's MF 6.1.2.
+        Returns the loaded radius of the tyre.
 
-        :param FX: longitudinal force.
-        :param FY: lateral force.
-        :param FZ: vertical load.
-        :param N: wheel angular speed.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FX : allowableData
+            Longitudinal force.
+        FY : allowableData
+            Side force.
+        FZ : allowableData
+            Vertical load
+        N : allowableData
+            Angular speed of the wheel.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``RL`` -- loaded rolling radius.
+        Returns
+        -------
+        RL : allowableData
+            Loaded radius.
         """
 
         # set default value for optional argument

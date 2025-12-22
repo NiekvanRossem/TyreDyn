@@ -7,7 +7,7 @@ class ContactPatchMF61:
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # other modules
@@ -21,9 +21,15 @@ class ContactPatchMF61:
         """
         Finds the contact patch dimensions.
 
-        :param FZ: vertical load.
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load
 
-        :return: ``a``, ``b`` -- ellipse radii of the contact patch.
+        Returns
+        -------
+        a, b : list[allowableData]
+            Contact patch length and width.
         """
 
         # check if arrays have the right dimension, and flatten if needed

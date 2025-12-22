@@ -8,7 +8,7 @@ class ForcesMF61:
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # helper functions
@@ -30,33 +30,42 @@ class ForcesMF61:
 
     def find_fx_pure(
             self,
-            SL: allowableData,
-            FZ: allowableData,
-            P:  allowableData = None,
-            IA: allowableData = 0.0,
-            VS: allowableData = 0.0,
+            SL:  allowableData,
+            FZ:  allowableData,
+            P:   allowableData = None,
+            IA:  allowableData = 0.0,
+            VS:  allowableData = 0.0,
+            PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the longitudinal force for pure slip conditions.
+        Returns the longitudinal force for pure slip conditions.
 
-        :param SL: slip ratio.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: slip speed magnitude (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``FX`` -- longitudinal force for pure slip.
+        Returns
+        -------
+        FX : allowableData
+            Longitudinal force for pure slip.
         """
 
-        PHI = None
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_1 = self.turn_slip._find_zeta_1 # TODO
-        else:
-            zeta_1 = self.zeta_1_default
-
         # set default values for optional arguments
-        P = self.INFLPRES if P is None else P
+        P   = self.INFLPRES if P is None else P
+        PHI = 0.0 if PHI is None else PHI
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -71,6 +80,12 @@ class ForcesMF61:
 
         # reference speed
         V0 = self.LONGVL
+
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_1 = self.turn_slip._find_zeta_1() # TODO
+        else:
+            zeta_1 = self.zeta_default
 
         # normalize inputs
         dfz = self.normalize._find_dfz(FZ)
@@ -113,7 +128,7 @@ class ForcesMF61:
 
         return FX
 
-    def find_fx(
+    def find_fx_combined(
             self,
             SA:  allowableData,
             SL:  allowableData,
@@ -122,20 +137,36 @@ class ForcesMF61:
             IA:  allowableData = 0.0,
             VCX: allowableData = None,
             VS:  allowableData = 0.0,
+            PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the longitudinal force for combined slip conditions.
+        Returns the longitudinal force for combined slip conditions.
 
-        :param SL: slip ratio.
-        :param SA: slip angle.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: slip speed magnitude (optional, will default to zero if not specified).
-        :param VCX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``FX`` -- longitudinal force.
+        Returns
+        -------
+        FX : allowableData
+            Longitudinal force for combined slip conditions.
         """
 
         # set default values for optional arguments
@@ -178,7 +209,7 @@ class ForcesMF61:
         GXA = np.cos(C_XA * self.atan(B_XA * alpha_s - E_XA * (B_XA * alpha_s - self.atan(B_XA * alpha_s)))) / GXAO
 
         # force for pure slip
-        FX0 = self.find_fx_pure(SL, FZ, P, IA, VS, angle_unit)
+        FX0 = self.find_fx_pure(SL, FZ, P, IA, VS, PHI, angle_unit)
 
         # longitudinal force for combined slip (4.E50)
         FX = FX0 * GXA
@@ -198,34 +229,37 @@ class ForcesMF61:
             PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the side force for pure slip conditions.
+        Returns the side force for pure slip conditions.
 
-        :param PHI:
-        :param SA: slip angle.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: slip speed magnitude (optional, will default to zero if not specified).
-        :param VCX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return:
-            ``FY`` -- side force.
+        Returns
+        -------
+        FY : allowableData
+            Side force for pure slip conditions.
         """
-
-        # turn slip correction TODO: move after default values
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_0 = 0.0  # (4.83)
-            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
-        else:
-            zeta_0 = self.zeta_0_default
-            zeta_2 = self.zeta_2_default
-            zeta_4 = self.zeta_4_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
         VCX = self.LONGVL if VCX is None else VCX
+        PHI = 0.0 if PHI is None else PHI
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -233,6 +267,16 @@ class ForcesMF61:
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_0 = 0.0  # (4.83)
+            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
+        else:
+            zeta_0 = self.zeta_default
+            zeta_2 = self.zeta_default
+            zeta_4 = self.zeta_default
 
         # find normalized load and pressure
         dfz = self.normalize._find_dfz(FZ)
@@ -288,7 +332,7 @@ class ForcesMF61:
 
         return FY
 
-    def find_fy(
+    def find_fy_combined(
             self,
             SA:  allowableData,
             SL:  allowableData,
@@ -300,30 +344,39 @@ class ForcesMF61:
             PHI: allowableData = None,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
-        Finds the side force for combined slip conditions.
+        Returns the side force for combined slip conditions.
 
-        :param SA: slip angle.
-        :param SL: slip ratio.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VS: slip speed magnitude (optional, will default to zero if not specified).
-        :param VCX: contact patch longitudinal speed (optional, will default to ``LONGVL`` if not specified).
-        :param PHI: turn slip (optional).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``FY`` -- side force.
+        Returns
+        -------
+        FY : allowableData
+            Side force for combined slip conditions.
         """
-
-        # turn slip correction
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
-        else:
-            zeta_2 = self.zeta_2_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
         VCX = self.LONGVL if VCX is None else VCX
+        PHI = 0.0 if PHI is None else PHI
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -331,6 +384,12 @@ class ForcesMF61:
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
+        else:
+            zeta_2 = self.zeta_default
 
         # normalized vertical load
         dfz = self.normalize._find_dfz(FZ)

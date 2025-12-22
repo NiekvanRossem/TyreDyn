@@ -8,7 +8,7 @@ class TrailMF61:
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # helper functions
@@ -35,30 +35,40 @@ class TrailMF61:
             PHI: allowableData = None,
             angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
-        Finds the pneumatic trail of the tyre.
+        Finds the pneumatic trail of the tyre for pure slip conditions.
 
-        :param PHI:
-        :param SA: slip angle.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VC: contact patch speed (optional, if not selected the ``LONGVL`` parameter is used).
-        :param VCX: contact patch longitudinal speed (optional, if not selected the ``LONGVL`` parameter is used).
-        :param VS: slip speed (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VC : allowableData, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``t`` -- pneumatic trail.
+        Returns
+        -------
+        t : allowableData
+            Pneumatic trail.
         """
-
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_5 = self.turn_slip._find_zeta_5(PHI)
-        else:
-            zeta_5 = self.zeta_5_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
         VC  = self.LONGVL if VC is None else VC
         VCX = self.LONGVL if VCX is None else VCX
+        PHI = 0.0 if PHI is None else PHI
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -66,6 +76,12 @@ class TrailMF61:
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_5 = self.turn_slip._find_zeta_5(PHI)
+        else:
+            zeta_5 = self.zeta_default
 
         # cosine term correction factor
         cos_prime_alpha = self.correction._find_cos_prime_alpha(VC, VCX)
@@ -93,29 +109,40 @@ class TrailMF61:
         """
         Finds the pneumatic trail of the tyre for combined slip conditions.
 
-        :param PHI:
-        :param SA: slip angle.
-        :param SL: slip ratio.
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param VC: contact patch speed (optional, will default to ``LONGVL`` if not specified).
-        :param VCX: contact patch longitudinal speed (optional, if not selected the ``LONGVL`` parameter is used).
-        :param VS: slip speed (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        SL : allowableData
+            Slip ratio.
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VC : allowableData, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
+        VCX : allowableData, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Slip speed magnitude (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : string, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``t`` -- pneumatic trail.
+        Returns
+        -------
+        t : allowableData
+            Pneumatic trail.
         """
-
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_5 = self.turn_slip._find_zeta_5(PHI)
-        else:
-            zeta_5 = self.zeta_5_default
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
         VC  = self.LONGVL if VC is None else VC
         VCX = self.LONGVL if VCX is None else VCX
+        PHI = 0.0 if PHI is None else PHI
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -123,6 +150,12 @@ class TrailMF61:
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_5 = self.turn_slip._find_zeta_5(PHI)
+        else:
+            zeta_5 = self.zeta_default
 
         # cosine term correction factor
         cos_prime_alpha = self.correction._find_cos_prime_alpha(VC, VCX)
@@ -156,7 +189,10 @@ class TrailMF61:
             VCX: allowableData,
             VS:  allowableData,
             zeta_5) -> list[allowableData]:
-        """Function containing the main calculations for the pneumatic trail. To be used in ``find_trail`` and ``find_trail_pure``."""
+        """
+        Function containing the main calculations for the pneumatic trail. To be used in ``find_trail`` and
+        ``find_trail_pure``.
+        """
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS

@@ -8,7 +8,7 @@ class GradientsMF61:
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` class."""
         self._model = model
 
         # helper functions
@@ -30,25 +30,30 @@ class GradientsMF61:
             PHI: allowableData = None,
             angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
         """
-        Finds the cornering stiffness at zero slip angle for pure slip conditions.
+        Returns the side force gradient to slip angle at zero slip for free rolling conditions.
 
-        :param PHI:
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
-        :param IA: camber angle with respect to the ground plane (optional, will default to zero if not specified).
-        :param angle_unit: unit of the angles (optional, set to ``"deg"`` if your input arrays are specified in degrees).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+        IA: allowableData, optional
+            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        PHI : allowableData, optional
+            Turn slip (will default to zero if not specified).
+        angle_unit : str, optional
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
-        :return: ``KYA`` -- cornering stiffness.
+        Returns
+        -------
+        KYA : allowableData
+            Cornering stiffness at zero slip angle.
         """
 
-        # turn slip correction
-        if self._use_turn_slip is True and PHI is not None:
-            zeta_3 = self.turn_slip._find_zeta_3(PHI)
-        else:
-            zeta_3 = self.zeta_3_default
-
         # set default values for optional arguments
-        P = self.INFLPRES if P is None else P
+        P   = self.INFLPRES if P is None else P
+        PHI = 0.0 if PHI is None else PHI
 
         # unpack tyre properties
         FZ0 = self.FNOMIN
@@ -59,6 +64,12 @@ class GradientsMF61:
 
         # correct angle if mismatched between input array and TIR file
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
+
+        # turn slip correction
+        if self._use_turn_slip:
+            zeta_3 = self.turn_slip._find_zeta_3(PHI)
+        else:
+            zeta_3 = self.zeta_default
 
         # corrected camber angle
         gamma_star = self.correction._find_gamma_star(IA)
@@ -77,12 +88,19 @@ class GradientsMF61:
 
     def find_slip_stiffness(self, FZ: allowableData, P:  allowableData = None) -> allowableData:
         """
-        Finds the longitudinal slip stiffness at zero slip ratio for pure slip conditions.
+        Returns the longitudinal force gradient to longitudinal slip stiffness at zero slip ratio.
 
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``KXK`` -- longitudinal slip stiffness.
+        Returns
+        -------
+        KXK : allowableData
+            Slip stiffness at zero slip.
         """
 
         # set default values for optional arguments
@@ -103,12 +121,19 @@ class GradientsMF61:
 
     def find_camber_stiffness(self, FZ: allowableData, P:  allowableData = None) -> allowableData:
         """
-        Finds the camber stiffness. Calculations according to  Pacejka's MF 6.1.2 model.
+        Returns the side force gradient to inclination angle.
 
-        :param FZ: vertical load.
-        :param P: tyre pressure (optional, if not selected the ``INFLPRES`` parameter is used).
+        Parameters
+        ----------
+        FZ : allowableData
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
-        :return: ``KYCO`` -- camber stiffness.
+        Returns
+        -------
+        KYCO : allowableData
+            Camber stiffness at zero inclination angle.
         """
 
         # set default values for optional arguments
@@ -129,12 +154,20 @@ class GradientsMF61:
     @staticmethod
     def find_instant_kya(SA: allowableData, FY: allowableData) -> allowableData:
         """
-        Finds the instantaneous cornering stiffness of the tyre by calculating the gradient of the lateral force and the
-        slip ratio.
+        Returns the instantaneous cornering stiffness of the tyre by calculating the gradient of the lateral force and
+        the slip angle.
 
-        :param SA:
-        :param FY:
-        :return:
+        Parameters
+        ----------
+        SA : allowableData
+            Slip angle.
+        FY : allowableData
+            Side force.
+
+        Returns
+        -------
+        iKYA : allowableData
+            Instantaneous cornering stiffness
         """
 
         # instantaneous cornering stiffness (not defined in the book, method from MFeval)
@@ -144,13 +177,20 @@ class GradientsMF61:
     @staticmethod
     def find_instant_kxk(SL: allowableData, FX: allowableData) -> allowableData:
         """
-        Finds the instantaneous slip stiffness of the tyre by calculating the gradient of the longitudinal force and the
-        slip ratio.
+        Returns the instantaneous slip stiffness of the tyre by calculating the gradient of the longitudinal force and
+        the slip ratio.
 
-        :param SL: slip ratio.
-        :param FX: longitudinal force.
+        Parameters
+        ----------
+        SL : allowableData
+            Slip ratio.
+        FX : allowableData
+            Longitudinal force.
 
-        :return: ``iKXK`` -- instantaneous slip stiffness.
+        Returns
+        -------
+        iKXK : allowableData
+            Instantaneous slip stiffness
         """
 
         # instantaneous slip stiffness from MFeval)

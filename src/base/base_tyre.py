@@ -6,10 +6,21 @@ from src.utils.misc import allowableData
 class TyreBase:
     """
     Base template for tyre classes. This class contains the methods that are shared between the subclasses. Do not use
-    this class directly.
+    directly.
     """
 
     def __init_from_data__(self, params: dict, **settings):
+        """
+        Unpack and stores the tyre parameter dictionary, reads the user-defined settings, and sets the trigonometry
+        functions based on the angle unit used to fit the tyre coefficients.
+
+        Parameters
+        ----------
+        params : dict
+            Dictionary containing TIR file parameters. Separated in the same sections as the TIR file.
+        settings
+            Optional user settings (see documentation).
+        """
 
         # store units separately in a dictionary
         self._units = {}
@@ -21,7 +32,7 @@ class TyreBase:
         self._use_gamma_star = settings.get('use_gamma_star', True)
         self._use_turn_slip  = settings.get('use_turn_slip', False)
         self._use_lmu_star   = settings.get('use_lmu_star', True)
-        self._check_format   = settings.get('check_format', True)
+        self._check_format   = settings.get('check_format', True) # TODO: change name
         self._check_limits   = settings.get('check_limits', True)
 
         # unpack parameter dictionary
@@ -51,16 +62,33 @@ class TyreBase:
 
     def __getattr__(self, item):
         """Make the tyre parameters available in the functions."""
-
         params = object.__getattribute__(self, "_params_flat")
-
         if item in params:
             return params[item]
         else:
             raise AttributeError(f"{type(self).__name__} has no attribute '{item}'")
 
     def _angle_unit_check(self, sig_in: Union[allowableData, list[allowableData]], angle_unit: Literal["rad", "deg"]):
-        """Checks for possible mismatches between the angle unit of the input arrays and the TIR file, and corrects them."""
+        """
+        Checks for possible mismatches between the angle unit of the input arrays and the TIR file, and corrects them.
+        If TIR file was created for degrees, and input signals are specified in radians, the signals are converted to
+        degrees. If the TIR file was created for radians, and the input signals are specified in degrees, they are
+        converted to radians. In any other case they are directly passed through.
+
+        Parameters
+        ----------
+        sig_in : Union[allowableData, list[allowableData]]
+            (List of) signal(s) which may need to be converted from degrees to radians or vice versa.
+        angle_unit : Literal["rad", "deg"]
+            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+
+        Returns
+        -------
+        sig_out : Union[allowableData, list[allowableData]]
+            Corrected input signals.
+        angle_unit : Literal["rad", "deg"]
+            Updated angle unit of the input signals.
+        """
 
         # if the input arrays are specified in degrees, and the coefficients are fitted in radians
         if angle_unit == "deg" and self._units["ANGLE"] in ["rad", "radian", "radians"]:
@@ -95,8 +123,23 @@ class TyreBase:
 
     def _limit_check(self, SA: allowableData = None, SL: allowableData = None, FZ: allowableData = None,
                       P: allowableData = None, IA: allowableData = None):
-        """Performs limit checks on the input signal."""
-        
+        """
+        Checks if the input signals fall within the limits specified in the TIR file.
+
+        Parameters
+        ----------
+        SA : allowableData, optional
+            Slip angle.
+        SL : allowableData, optional
+            Slip ratio.
+        FZ : allowableData, optional
+            Vertical load.
+        P : allowableData, optional
+            Tyre pressure.
+        IA : allowableData, optional
+            Inclination angle with respect to the ground plane.
+        """
+
         def main(sig_in, minval, maxval, sig_name: str):
             if sig_in is not None:
                 if not isinstance(sig_in, np.ndarray):
@@ -138,26 +181,48 @@ class TyreBase:
             pass
 
     @staticmethod
-    def _format_check(data: Union[allowableData, list[allowableData]]) -> allowableData:
+    def _format_check(sig_in: Union[allowableData, list[allowableData]]) -> allowableData:
         """
-        Checks the shape of the input data, and flattens them to 1D arrays if needed.
+        Checks the shape of the input data. Valid input signals are:
+           - ``int``
+           - ``float``
+           - ``list`` of either ``int`` or ``float``
+           - ``tuple`` of either int or ``float``
+           - ``np.ndarray`` of either ``int`` or ``float`` (must have shape ``(n,)`` to enforce element-wise algebra)
 
-        :param data: input array.
-        :return: ``data`` -- flattened into 1D array.
+        If an input signal has the shape ``(n,1)``, this function will flatten them to ``(n,)``. Higher order arrays
+        will generate an error.
+
+        Parameters
+        ----------
+        sig_in : Union[allowableData, list[allowableData]]
+            Input signals whose format needs to be checked.
+
+        Returns
+        -------
+        sig_out : Union[allowableData, list[allowableData]]
+            Flattened input signals.
         """
 
         # if a list of channels is passed
-        if isinstance(data, list):
-            for i, channel in enumerate(data):
-                if isinstance(channel, np.ndarray):
-                    if channel.ndim == 2:
-                        assert channel.shape[1] == 1, "Please input a 1D array."
-                        data[i] = channel.flatten()
+        if isinstance(sig_in, list):
+            sig_out = sig_in.__len__ * [None]
+            for i, signal in enumerate(sig_in):
+                if isinstance(signal, np.ndarray):
+                    if signal.ndim == 1:
+                        assert signal.shape[1] == 1, "Please input a 1D array."
+                        sig_out[i] = signal.flatten()
+                else:
+                    sig_out[i] = signal
 
         # if just a single channel is passed
         else:
-            if isinstance(data, np.ndarray):
-                if data.ndim == 2:
-                    assert data.shape[1] == 1, "Please input a 1D array."
-                    data = data.flatten()
-        return data
+            if isinstance(sig_in, np.ndarray):
+                if sig_in.ndim == 1:
+                    sig_out = sig_in.flatten()
+                else:
+                    raise SyntaxError("Please input a 1D array")
+            else:
+                sig_out = sig_in
+
+        return sig_out
