@@ -219,8 +219,8 @@ class MomentsMF61:
         # KZCO = FZ * R0 * (self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) * self.LKZC * LMUY_star - D_T0 * KYCO
 
         # residual self-aligning couple (4.E36)
-        MZR = self.__mz_main_routine(SA, 0.0, FZ, P, IA, VC, VCX, VS, PHI, zeta_0, zeta_2, zeta_4, zeta_6, zeta_7,
-                                     zeta_8, combined_slip=False, angle_unit=angle_unit)
+        MZR = self._mz_main_routine(SA, 0.0, FZ, P, IA, VC, VCX, VS, PHI, zeta_0, zeta_2, zeta_4, zeta_6, zeta_7,
+                                    zeta_8, combined_slip=False, angle_unit=angle_unit)
 
         # self-aligning couple due to pneumatic trail (4.E32)
         MZ_prime = - t * FY
@@ -295,12 +295,14 @@ class MomentsMF61:
 
     def find_my_combined(
             self,
-            SA: allowableData,
-            SL: allowableData,
-            FZ: allowableData,
-            P:  allowableData = None,
-            IA: allowableData = 0.0,
-            VX: allowableData = None,
+            SA:  allowableData,
+            SL:  allowableData,
+            FZ:  allowableData,
+            P:   allowableData = None,
+            IA:  allowableData = 0.0,
+            VX:  allowableData = None,
+            VS:  allowableData = 0.0,
+            PHI: allowableData = 0.0,
             angle_unit: Literal["deg", "rad"] = "rad") -> allowableData:
         """
         Returns the rolling resistance couple for combined slip conditions.
@@ -319,6 +321,10 @@ class MomentsMF61:
             Inclination angle with respect to the ground plane (will default to zero if not specified).
         VX : allowableData, optional
             Contact patch speed (will default to ``LONGVL`` if not specified).
+        VS : allowableData, optional
+            Contact patch slip speed (will default to zero if not specified).
+        PHI: allowableData, optional
+            Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
@@ -410,12 +416,14 @@ class MomentsMF61:
 
         # turn slip correction
         if self._use_turn_slip:
+            zeta_0 = 0.0
             zeta_2 = self.turn_slip._find_zeta_2(SA, FZ, PHI)
             zeta_4 = self.turn_slip._find_zeta_4(FZ, P, IA, VCX, VS, PHI, zeta_2, angle_unit)
             zeta_6 = self.turn_slip._find_zeta_6() # TODO
             zeta_7 = self.turn_slip._find_zeta_7()
             zeta_8 = self.turn_slip._find_zeta_8(FZ, P, IA, VS, angle_unit)
         else:
+            zeta_0 = self.zeta_default
             zeta_2 = self.zeta_default
             zeta_4 = self.zeta_default
             zeta_6 = self.zeta_default
@@ -429,7 +437,7 @@ class MomentsMF61:
         dfz = self.normalize._find_dfz(FZ)
 
         # corrected camber angle
-        gamma_star = self.normalize._find_gamma_star(IA)
+        gamma_star = self.correction._find_gamma_star(IA)
 
         # tyre forces
         FX = self.forces.find_fx_combined(SA, SL, FZ, P, IA, VCX, VS, PHI, angle_unit)
@@ -439,7 +447,7 @@ class MomentsMF61:
         FY_prime = self.forces.find_fy_combined(SA, SL, FZ, P, 0.0, VCX, VS, PHI, angle_unit)
 
         # pneumatic trail
-        t = self.trail.find_trail(SA, SL, FZ, P, IA, VC, VCX, VS, PHI, angle_unit)
+        t = self.trail.find_trail_combined(SA, SL, FZ, P, IA, VC, VCX, VS, PHI, angle_unit)
 
         # pneumatic scrub (4.E76)
         s = R0 * (self.SSZ1 + self.SSZ2 * (FY / FZ0_prime) + (self.SSZ3 + self.SSZ4 * dfz) * gamma_star) * self.LS
@@ -448,9 +456,8 @@ class MomentsMF61:
         MZ_prime = -t * FY_prime
 
         # residual self-aligning couple
-        MZR = self.__mz_main_routine(SA, SL, FZ, P, IA, VC, VCX, VS, PHI,
-                                     zeta_0, zeta_2, zeta_4, zeta_6, zeta_7, zeta_8,
-                                     combined_slip=True, angle_unit=angle_unit)
+        MZR = self._mz_main_routine(SA, SL, FZ, P, IA, VC, VCX, VS, PHI, zeta_0, zeta_2, zeta_4, zeta_6, zeta_7, zeta_8,
+                                    combined_slip=True, angle_unit=angle_unit)
 
         # final self-aligning couple (4.E71)
         MZ = MZ_prime + MZR + s * FX
@@ -513,7 +520,7 @@ class MomentsMF61:
 
         return MY
 
-    def __mz_main_routine(
+    def _mz_main_routine(
             self,
             SA:  allowableData,
             SL:  allowableData,

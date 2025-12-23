@@ -94,7 +94,7 @@ class TrailMF61:
 
         return t
 
-    def find_trail(
+    def find_trail_combined(
             self,
             SA:  allowableData,
             SL:  allowableData,

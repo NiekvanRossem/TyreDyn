@@ -17,7 +17,7 @@ class ContactPatchMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_contact_patch(self, FZ: allowableData) -> list[allowableData]:
+    def find_contact_patch(self, FZ: allowableData, P: allowableData = None) -> list[allowableData]:
         """
         Finds the contact patch dimensions.
 
@@ -25,12 +25,17 @@ class ContactPatchMF61:
         ----------
         FZ : allowableData
             Vertical load
+        P : allowableData, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
 
         Returns
         -------
         a, b : list[allowableData]
             Contact patch length and width.
         """
+
+        # set default values for optional arguments
+        P = self.INFLPRES if P is None else P
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:

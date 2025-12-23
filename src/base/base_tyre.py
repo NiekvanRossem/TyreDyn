@@ -28,12 +28,13 @@ class TyreBase:
             self._units[dimension] = params["UNITS"][dimension].replace("'", "")
 
         # store user settings
-        self._use_alpha_star = settings.get('use_alpha_star', True)
-        self._use_gamma_star = settings.get('use_gamma_star', True)
-        self._use_turn_slip  = settings.get('use_turn_slip', False)
-        self._use_lmu_star   = settings.get('use_lmu_star', True)
-        self._check_format   = settings.get('check_format', True) # TODO: change name
-        self._check_limits   = settings.get('check_limits', True)
+        self._use_alpha_star    = settings.get('use_alpha_star', True)
+        self._use_gamma_star    = settings.get('use_gamma_star', True)
+        self._use_turn_slip     = settings.get('use_turn_slip', False)
+        self._use_lmu_star      = settings.get('use_lmu_star', True)
+        self._use_mfeval_mode   = settings.get('use_mfeval_mode', False)
+        self._check_format      = settings.get('check_format', True) # TODO: change name
+        self._check_limits      = settings.get('check_limits', True)
 
         # unpack parameter dictionary
         self._params_flat = {}
@@ -206,22 +207,25 @@ class TyreBase:
 
         # if a list of channels is passed
         if isinstance(sig_in, list):
-            sig_out = sig_in.__len__ * [None]
+            sig_out = len(sig_in) * [None]
             for i, signal in enumerate(sig_in):
                 if isinstance(signal, np.ndarray):
-                    if signal.ndim == 1:
+                    if signal.ndim > 1:
                         assert signal.shape[1] == 1, "Please input a 1D array."
                         sig_out[i] = signal.flatten()
+                    else:
+                        sig_out[i] = signal
                 else:
                     sig_out[i] = signal
 
         # if just a single channel is passed
         else:
             if isinstance(sig_in, np.ndarray):
-                if sig_in.ndim == 1:
+                if sig_in.ndim > 1:
+                    assert sig_in.shape[1] == 1, "Please input a 1D array."
                     sig_out = sig_in.flatten()
                 else:
-                    raise SyntaxError("Please input a 1D array")
+                    sig_out = sig_in
             else:
                 sig_out = sig_in
 

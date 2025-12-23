@@ -5,39 +5,6 @@ import numpy as np
 numberData = Union[int, float]
 allowableData = Union[numberData, list[numberData], tuple[numberData], np.typing.NDArray[numberData]]
 
-"""
-def check_format(data: Union[allowableData, list[allowableData]]) -> allowableData:
-    \"""
-    Checks the shape of the input data, and flattens them to 1D arrays if needed.
-
-    :param data: input array.
-    :return: ``data`` -- flattened into 1D array.
-    \"""
-
-    # if a list of channels is passed
-    if isinstance(data, list):
-        for i, channel in enumerate(data):
-            if isinstance(channel, np.ndarray):
-                if channel.ndim == 2:
-                    assert channel.shape[1] == 1, "Please input a 1D array."
-                    data[i] = channel.flatten()
-
-    # if just a single channel is passed
-    else:
-        if isinstance(data, np.ndarray):
-            if data.ndim == 2:
-                assert data.shape[1] == 1, "Please input a 1D array."
-                data = data.flatten()
-    return data
-"""
-
-def inherit_docstring(source):
-    """Adds docstring of source method to target method. Written by ChatGPT."""
-    def decorator(target):
-        target.__doc__ = source.__doc__
-        return target
-    return decorator
-
 def normalize_fittyp(fittyp: str) -> str:
     """
     Quick function that normalizes the ``FITTYP`` value. Can deal with the following input formats:
