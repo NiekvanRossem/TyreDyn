@@ -1,4 +1,4 @@
-from src.utils.misc import allowableData
+from src.utils.formatting import SignalLike
 
 class Normalize:
     """
@@ -13,7 +13,10 @@ class Normalize:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def _find_dfz(self, FZ: allowableData) -> allowableData:
+    def _find_dfz(
+            self,
+            FZ: SignalLike
+    ) -> SignalLike:
         """Finds the normalized vertical load."""
 
         # unpack parameters
@@ -27,7 +30,10 @@ class Normalize:
 
         return dfz
 
-    def _find_dpi(self, P: allowableData) -> allowableData:
+    def _find_dpi(
+            self,
+            P: SignalLike
+    ) -> SignalLike:
         """Finds the normalized tyre pressure."""
 
         # extract parameters

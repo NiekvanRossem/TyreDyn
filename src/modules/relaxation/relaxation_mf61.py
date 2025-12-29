@@ -1,4 +1,4 @@
-from src.utils.misc import allowableData
+from src.utils.formatting import SignalLike, AngleUnit
 from typing import Literal
 import numpy as np
 
@@ -21,45 +21,50 @@ class RelaxationMF61:
 
     def find_lateral_relaxation(
             self,
-            FZ:  allowableData,
-            P:   allowableData = None,
-            IA:  allowableData = 0.0,
-            PHI: allowableData = None,
-            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
+            *,
+            FZ:  SignalLike,
+            P:   SignalLike = None,
+            IA:  SignalLike = 0.0,
+            PHI: SignalLike = 0.0,
+            angle_unit: AngleUnit = "rad"
+    ) -> SignalLike:
         """
         Returns the lateral relaxation length.
 
         Parameters
         ----------
-        FZ : allowableData
+        FZ : SignalLike
             Vertical load.
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
-        IA : allowableData, optional
+        IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
-        PHI : allowableData, optional
+        PHI : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
         Returns
         -------
-        sigma_y : allowableData
+        sigma_y : SignalLike
             Lateral relaxation length.
         """
 
+        # set default values for optional arguments
+        P = self.INFLPRES if P is None else P
+
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            FZ, IA = self._format_check([FZ, IA])
+            FZ, P, IA, PHI = self._format_check([FZ, P, IA, PHI])
 
         # correct angle if mismatched between input array and TIR file
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # cornering stiffness
-        KYA = self.gradient.find_cornering_stiffness(FZ, P, IA, PHI, angle_unit)
+        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
 
         # lateral stiffness
-        Cy = self.stiffness.find_lateral_stiffness(FZ, P)
+        Cy = self.stiffness.find_lateral_stiffness(FZ=FZ, P=P)
 
         # lateral relaxation length (A3.9)
         sigma_y = KYA / Cy
@@ -67,33 +72,38 @@ class RelaxationMF61:
 
     def find_longitudinal_relaxation(
             self,
-            FZ: allowableData,
-            P:  allowableData = None) -> allowableData:
+            *,
+            FZ: SignalLike,
+            P:  SignalLike = None
+    ) -> SignalLike:
         """
         Returns the longitudinal relaxation length.
 
         Parameters
         ----------
-        FZ : allowableData
+        FZ : SignalLike
             Vertical load.
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
 
         Returns
         -------
-        sigma_x : allowableData
+        sigma_x : SignalLike
             Longitudinal relaxation length.
         """
-        
+
+        # set default values for optional arguments
+        P = self.INFLPRES if P is None else P
+
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            FZ = self._format_check(FZ)
+            FZ, P = self._format_check([FZ, P])
 
         # slip stiffness
-        KXK = self.gradient.find_slip_stiffness(FZ, P)
+        KXK = self.gradient.find_slip_stiffness(FZ=FZ, P=P)
 
         # longitudinal stiffness
-        Cx = self.stiffness.find_longitudinal_stiffness(FZ, P)
+        Cx = self.stiffness.find_longitudinal_stiffness(FZ=FZ, P=P)
 
         # longitudinal relaxation length (A3.9)
         sigma_x = KXK / Cx

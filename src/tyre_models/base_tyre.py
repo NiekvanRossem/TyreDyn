@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from typing import Union, Literal
-from src.utils.misc import allowableData
+from src.utils.formatting import SignalLike
 
 class TyreBase:
     """
@@ -69,7 +69,7 @@ class TyreBase:
         else:
             raise AttributeError(f"{type(self).__name__} has no attribute '{item}'")
 
-    def _angle_unit_check(self, sig_in: Union[allowableData, list[allowableData]], angle_unit: Literal["rad", "deg"]):
+    def _angle_unit_check(self, sig_in: Union[SignalLike, list[SignalLike]], angle_unit: Literal["rad", "deg"]):
         """
         Checks for possible mismatches between the angle unit of the input arrays and the TIR file, and corrects them.
         If TIR file was created for degrees, and input signals are specified in radians, the signals are converted to
@@ -78,14 +78,14 @@ class TyreBase:
 
         Parameters
         ----------
-        sig_in : Union[allowableData, list[allowableData]]
+        sig_in : Union[SignalLike, list[SignalLike]]
             (List of) signal(s) which may need to be converted from degrees to radians or vice versa.
         angle_unit : Literal["rad", "deg"]
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
         Returns
         -------
-        sig_out : Union[allowableData, list[allowableData]]
+        sig_out : Union[SignalLike, list[SignalLike]]
             Corrected input signals.
         angle_unit : Literal["rad", "deg"]
             Updated angle unit of the input signals.
@@ -122,22 +122,22 @@ class TyreBase:
 
         return sig_out, angle_unit
 
-    def _limit_check(self, SA: allowableData = None, SL: allowableData = None, FZ: allowableData = None,
-                      P: allowableData = None, IA: allowableData = None):
+    def _limit_check(self, SA: SignalLike = None, SL: SignalLike = None, FZ: SignalLike = None,
+                     P: SignalLike = None, IA: SignalLike = None):
         """
         Checks if the input signals fall within the limits specified in the TIR file.
 
         Parameters
         ----------
-        SA : allowableData, optional
+        SA : SignalLike, optional
             Slip angle.
-        SL : allowableData, optional
+        SL : SignalLike, optional
             Slip ratio.
-        FZ : allowableData, optional
+        FZ : SignalLike, optional
             Vertical load.
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure.
-        IA : allowableData, optional
+        IA : SignalLike, optional
             Inclination angle with respect to the ground plane.
         """
 
@@ -182,7 +182,7 @@ class TyreBase:
             pass
 
     @staticmethod
-    def _format_check(sig_in: Union[allowableData, list[allowableData]]) -> allowableData:
+    def _format_check(sig_in: Union[SignalLike, list[SignalLike]]) -> SignalLike:
         """
         Checks the shape of the input data. Valid input signals are:
            - ``int``
@@ -196,12 +196,12 @@ class TyreBase:
 
         Parameters
         ----------
-        sig_in : Union[allowableData, list[allowableData]]
+        sig_in : Union[SignalLike, list[SignalLike]]
             Input signals whose format needs to be checked.
 
         Returns
         -------
-        sig_out : Union[allowableData, list[allowableData]]
+        sig_out : Union[SignalLike, list[SignalLike]]
             Flattened input signals.
         """
 

@@ -20,7 +20,7 @@ Changelog:
 
 from pydantic import BaseModel, RootModel, field_validator, model_validator, PrivateAttr
 from typing import Dict, ClassVar
-from src.utils.misc import normalize_fittyp
+from src.utils.formatting import normalize_fittyp
 
 ##--------------------------------------------------------------------------------------------------------------------##
 

@@ -1,4 +1,4 @@
-from src.utils.misc import allowableData
+from src.utils.formatting import SignalLike, AngleUnit
 from src.helpers.corrections import CorrectionsMF61
 from src.helpers.normalize import Normalize
 from typing import Literal
@@ -22,30 +22,31 @@ class FrictionMF61:
 
     def find_mu_x(
             self,
-            FZ: allowableData,
-            P:  allowableData = None,
-            IA: allowableData = 0.0,
-            VS: allowableData = 0.0,
-            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
+            *,
+            FZ: SignalLike,
+            P:  SignalLike = None,
+            IA: SignalLike = 0.0,
+            VS: SignalLike = 0.0,
+            angle_unit: AngleUnit = "rad") -> SignalLike:
         """
         Returns the longitudinal friction coefficient.
 
         Parameters
         ----------
-        FZ : allowableData
+        FZ : SignalLike
             Vertical load.
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
-        IA : allowableData, optional
+        IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VS : allowableData, optional
+        VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
         Returns
         -------
-        mu_x : allowableData
+        mu_x : SignalLike
             Longitudinal friction coefficient.
         """
 
@@ -67,7 +68,7 @@ class FrictionMF61:
         dpi = self.normalize._find_dpi(P)
 
         # composite friction scaling factor (4.E7)
-        LMUX_star = self.correction._find_lmu_star(VS, V0, self.LMUX)
+        LMUX_star = self.correction._find_lmu_star(VS=VS, V0=V0, LMU=self.LMUX)
 
         # friction coefficient (4.E13)
         mu_x = ((self.PDX1 + self.PDX2 * dfz) * (1.0 + self.PPX3 * dpi + self.PPX4 * dpi ** 2)
@@ -77,30 +78,32 @@ class FrictionMF61:
 
     def find_mu_y(
             self,
-            FZ: allowableData,
-            P:  allowableData = None,
-            IA: allowableData = 0.0,
-            VS: allowableData = 0.0,
-            angle_unit: Literal["rad", "deg"] = "rad") -> allowableData:
+            *,
+            FZ: SignalLike,
+            P:  SignalLike = None,
+            IA: SignalLike = 0.0,
+            VS: SignalLike = 0.0,
+            angle_unit: AngleUnit = "rad"
+    ) -> SignalLike:
         """
         Returns the lateral friction coefficient.
 
         Parameters
         ----------
-        FZ : allowableData
+        FZ : SignalLike
             Vertical load.
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
-        IA : allowableData, optional
+        IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VS : allowableData, optional
+        VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
         Returns
         -------
-        mu_y : allowableData
+        mu_y : SignalLike
             Lateral friction coefficient.
         """
 
@@ -125,7 +128,7 @@ class FrictionMF61:
         gamma_star = self.correction._find_gamma_star(IA)
 
         # composite friction scaling factor (4.E7)
-        LMUY_star = self.correction._find_lmu_star(VS, V0, self.LMUY)
+        LMUY_star = self.correction._find_lmu_star(VS=VS, V0=V0, LMU=self.LMUY)
 
         # lateral friction coefficient (4.E23)
         mu_y = ((self.PDY1 + self.PDY2 * dfz) * (1.0 + self.PPY3 * dpi + self.PPY4 * dpi ** 2)

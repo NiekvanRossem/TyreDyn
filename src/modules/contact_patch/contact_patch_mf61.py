@@ -1,4 +1,4 @@
-from src.utils.misc import allowableData
+from src.utils.formatting import SignalLike
 import numpy as np
 
 class ContactPatchMF61:
@@ -17,20 +17,25 @@ class ContactPatchMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_contact_patch(self, FZ: allowableData, P: allowableData = None) -> list[allowableData]:
+    def find_contact_patch(
+            self,
+            *,
+            FZ: SignalLike,
+            P: SignalLike = None
+    ) -> list[SignalLike]:
         """
         Finds the contact patch dimensions.
 
         Parameters
         ----------
-        FZ : allowableData
+        FZ : SignalLike
             Vertical load
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
 
         Returns
         -------
-        a, b : list[allowableData]
+        a, b : list[SignalLike]
             Contact patch length and width.
         """
 

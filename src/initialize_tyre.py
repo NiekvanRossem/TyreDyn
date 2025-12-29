@@ -1,6 +1,6 @@
 from src.utils.model_map import MODEL_CLASS_MAP
 from src.utils.paths import TYRE_DIR
-from src.utils.misc import *
+from src.utils.formatting import *
 from src.utils.tir_validation import TIRValidation
 
 class Tyre:
@@ -8,28 +8,46 @@ class Tyre:
     Initialization class for tyre tyre_models. This class contains the functions to read and validate a TIR file. Not
     to be confused with ``TyreBase``, which contains the template for the subclasses.
 
-    The following user-defined settings can be specified:
-      - ``check_format`` -- checks the shape of the input arrays, and flattens them if needed (default is ``True``).
-      - ``check_limits`` -- checks if all values in the input array are within the specified limits (default is ``True``).
-      - ``print_status`` -- set to `False` if you don't want to print status messages after loading (default is `True`).
-      - ``use_alpha_star`` -- slip angle correction for large angles and reverse running (default is ``True``).
-      - ``use_gamma_star`` -- inclination angle correction for large angles (default is ``True``).
-      - ``use_turn_slip`` -- turn slip correction (default is ``False``).
-      - ``use_lmu_star`` -- composite friction scaling factor with slip speed (default is ``True``).
-
-    Currently supported tyre models:
+    Currently supported tyre tyre_models:
       - MF 6.1
 
-    :param filename: filename of the TIR file
-    :param validate: Set to True to validate the TIR file
+    Parameters
+    ----------
+    filename : string
+        Path to the TIR file.
+    check_format : bool, optional
+        Checks the shape of the input arrays, and flattens them if needed (default is ``True``).
+    check_limits : bool, optional
+        Checks if all values in the input array are within the specified limits (default is ``True``).
+    print_status : bool, optional
+        Set to `False` if you don't want to print status messages after loading (default is `True`).
+    validate : bool, optional
+        Perform validation on TIR file parameters (default is ``True``).
+    use_alpha_star : bool, optional
+        Slip angle correction for large angles and reverse running (default is ``True``).
+    use_gamma_star : bool, optional
+        Inclination angle correction for large angles (default is ``True``).
+    use_turn_slip : bool, optional
+        Turn slip correction (default is ``False``).
+    use_lmu_star : bool, optional
+        Composite friction scaling factor with slip speed (default is ``True``).
 
-    :return: An instance of the chosen tyre class, which can return the state of the tyre for a given input.
+    Returns
+    -------
+    tyre : class
+        Instance of a tyre class with the desired model type.
     """
 
-    def __new__(cls, filename: str, validate: bool = True, **settings):
+    def __new__(cls, filename: str, **settings):
 
         # option to disable printing messages after loading in
         print_status: bool = settings.get('print_status', True)
+
+        # overwrite FITTYP if the user selected it
+        use_model_type: str = settings.get('use_model_type', None)
+
+        # option to disable validation procedure
+        validate: bool = settings.get('validate', True)
 
         # TODO: add support for custom paths
         # TODO: rename filename to filepath
@@ -41,7 +59,10 @@ class Tyre:
 
         # read TIR file
         params = cls._read_tir(filename)
-        model_type = normalize_fittyp(params.get("MODEL", {}).get("FITTYP", None))
+        if use_model_type is not None:
+            model_type = normalize_fittyp(use_model_type)
+        else:
+            model_type = normalize_fittyp(params.get("MODEL", {}).get("FITTYP", None))
         if print_status:
             print(f"TIR file '{filename}' successfully loaded.")
         if validate:
@@ -61,7 +82,7 @@ class Tyre:
             print(f"Tyre instance of type {subclass} successfully created.")
         return obj
 
-    def __init__(self, filename, validate: bool = True, **settings):
+    def __init__(self, filename, **settings):
         pass
 
     @staticmethod
@@ -130,12 +151,24 @@ class Tyre:
 # quick test script
 
 if __name__ == "__main__":
-    tyre = Tyre('car205_60R19.tir')
+    # initialize tyre
+    tyre = Tyre(
+        'car205_60R19.tir',
+        validate        = True,
+        use_model_type  = "MF62",
+        use_alpha_star  = True,
+        use_gamma_star  = True,
+        use_lmu_star    = True,
+        use_turn_slip   = False,
+        check_format    = True,
+        check_limits    = True,
+        use_mfeval_mode = False
+    )
 
     FZ = 600
     SL = 0.1
 
-    FX = tyre.forces.find_fx_pure(SL, FZ, P, IA, VS, PHI, angle_unit)
+    FX = tyre.forces.find_fx_pure(SL=SL, FZ=FZ)
 
     #RL = tyre.find_loaded_radius(FX, 0.0, FZ, 20.0)
     print(f"=== TEST OUTPUT === \n"

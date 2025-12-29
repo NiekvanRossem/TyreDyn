@@ -1,9 +1,10 @@
-from typing import Union
+from typing import Union, TypeAlias, Literal
 import numpy as np
 
 # create alias for allowable data types
-numberData = Union[int, float]
-allowableData = Union[numberData, list[numberData], tuple[numberData], np.typing.NDArray[numberData]]
+NumberLike : TypeAlias = int | float
+SignalLike : TypeAlias = NumberLike | list[NumberLike] | np.ndarray
+AngleUnit = Literal["deg", "rad"]
 
 def normalize_fittyp(fittyp: str) -> str:
     """

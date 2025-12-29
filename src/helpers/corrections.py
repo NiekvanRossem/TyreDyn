@@ -1,4 +1,4 @@
-from src.utils.misc import allowableData
+from src.utils.formatting import SignalLike, NumberLike
 import numpy as np
 
 class CorrectionsMF61:
@@ -14,7 +14,12 @@ class CorrectionsMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def _find_alpha_star(self, SA: allowableData, VCX: allowableData) -> allowableData:
+    def _find_alpha_star(
+            self,
+            *,
+            SA:  SignalLike,
+            VCX: SignalLike
+    ) -> SignalLike:
         """Finds the corrected slip angle."""
 
         # allows for large slip angles and reverse running (4.E3)
@@ -24,7 +29,10 @@ class CorrectionsMF61:
             alpha_star = SA
         return alpha_star
 
-    def _find_gamma_star(self, IA: allowableData) -> allowableData:
+    def _find_gamma_star(
+            self,
+            IA: SignalLike
+    ) -> SignalLike:
         """Finds the corrected inclination angle."""
 
         # (4.E4)
@@ -34,13 +42,22 @@ class CorrectionsMF61:
             gamma_star = IA
         return gamma_star
 
-    def _find_lmu_prime(self, LMU_star: allowableData) -> allowableData:
+    def _find_lmu_prime(
+            self,
+            LMU_star: SignalLike
+    ) -> SignalLike:
         """Finds the composite friction scaling factor."""
 
         lmu_prime = self.A_mu * LMU_star / (1.0 + (self.A_mu - 1.0) * LMU_star)
         return lmu_prime
 
-    def _find_lmu_star(self, VS: allowableData, V0: float, LMU: float) -> allowableData:
+    def _find_lmu_star(
+            self,
+            *,
+            VS:  SignalLike,
+            V0:  NumberLike,
+            LMU: NumberLike
+    ) -> SignalLike:
         """Finds the composite friction scaling factor, corrected for slip speed."""
 
         # (4.E7)
@@ -50,7 +67,12 @@ class CorrectionsMF61:
             LMU_star = LMU
         return LMU_star
 
-    def _find_cos_prime_alpha(self, VC: allowableData, VCX: allowableData) -> allowableData:
+    def _find_cos_prime_alpha(
+            self,
+            *,
+            VC:  SignalLike,
+            VCX: SignalLike
+    ) -> SignalLike:
         """Finds the correction factor for cosine terms when dealing with large slip angles."""
 
         # corrected wheel center speed (4.E6a)

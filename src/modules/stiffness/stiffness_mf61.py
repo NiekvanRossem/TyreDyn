@@ -1,4 +1,4 @@
-from src.utils.misc import allowableData
+from src.utils.formatting import SignalLike
 import numpy as np
 from typing import Literal
 
@@ -15,22 +15,30 @@ class StiffnessMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_lateral_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
+    def find_lateral_stiffness(
+            self,
+            *,
+            FZ: SignalLike,
+            P:  SignalLike = None
+    ) -> SignalLike:
         """
         Returns the lateral stiffness of the tyre, adjusted for load and pressure.
 
         Parameters
         ----------
-        FZ : allowableData
+        FZ : SignalLike
             Vertical load.
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
 
         Returns
         -------
-        Cy : allowableData
+        Cy : SignalLike
             Lateral tyre stiffness.
         """
+
+        # set default value for optional arguments
+        P = self.INFLPRES if P is None else P
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -47,22 +55,30 @@ class StiffnessMF61:
         Cy = Cy0 * (1.0 + self.PCFY1 * dfz + self.PCFY2 * dfz ** 2) * (1.0 + self.PCFY3 * dpi)
         return Cy
 
-    def find_longitudinal_stiffness(self, FZ: allowableData, P: allowableData = None) -> allowableData:
+    def find_longitudinal_stiffness(
+            self,
+            *,
+            FZ: SignalLike,
+            P:  SignalLike = None
+    ) -> SignalLike:
         """
         Returns the longitudinal stiffness of the tyre, adjusted for load and pressure.
 
         Parameters
         ----------
-        FZ : allowableData
+        FZ : SignalLike
             Vertical load.
-        P : allowableData, optional
+        P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
 
         Returns
         -------
-        Cx : allowableData
+        Cx : SignalLike
             Longitudinal tyre stiffness.
         """
+
+        # set default value for optional arguments
+        P = self.INFLPRES if P is None else P
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -79,18 +95,21 @@ class StiffnessMF61:
         Cx = Cx0 * (1.0 + self.PCFX1 * dfz + self.PCFX2 * dfz ** 2) * (1.0 + self.PCFX3 * dpi)
         return Cx
 
-    def find_vertical_stiffness(self, P: allowableData) -> allowableData:
+    def find_vertical_stiffness(
+            self,
+            P: SignalLike
+    ) -> SignalLike:
         """
         Returns the vertical stiffness of the tyre, adjusted for pressure.
 
         Parameters
         ----------
-        P : allowableData
+        P : SignalLike
             Tyre pressure.
 
         Returns
         -------
-        Cz : allowableData
+        Cz : SignalLike
             Vertical tyre stiffness.
         """
 
