@@ -26,10 +26,10 @@ class GradientsMF61:
     def find_cornering_stiffness(
             self,
             *,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -43,7 +43,7 @@ class GradientsMF61:
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA: SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -62,13 +62,14 @@ class GradientsMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            FZ, P, IA, PHI = self._format_check([FZ, P, IA, PHI])
+            FZ, P, IA, PHIT = self._format_check([FZ, P, IA, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_3 = self.turn_slip._find_zeta_3(PHI)
         else:
             zeta_3 = self.zeta_default
@@ -166,11 +167,11 @@ class GradientsMF61:
     def find_aligning_stiffness(
             self,
             *,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            PHI: SignalLike = 0.0,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -186,7 +187,7 @@ class GradientsMF61:
             Inclination angle with respect to the ground plane (will default to zero if not specified).
         VCX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -213,7 +214,7 @@ class GradientsMF61:
         dpi = self.normalize._find_dpi(P)
 
         # cornering stiffness
-        KYA = self.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
+        KYA = self.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
 
         # static trail peak factor
         D_T0 = self.common._find_dt0(FZ=FZ, dfz=dfz, dpi=dpi, VCX=VCX, FZ0_prime=FZ0_prime, R0=R0)

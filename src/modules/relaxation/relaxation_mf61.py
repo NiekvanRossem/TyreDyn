@@ -22,10 +22,10 @@ class RelaxationMF61:
     def find_lateral_relaxation(
             self,
             *,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -39,7 +39,7 @@ class RelaxationMF61:
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -55,13 +55,13 @@ class RelaxationMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            FZ, P, IA, PHI = self._format_check([FZ, P, IA, PHI])
+            FZ, P, IA, PHIT = self._format_check([FZ, P, IA, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # cornering stiffness
-        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
+        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
 
         # lateral stiffness
         Cy = self.stiffness.find_lateral_stiffness(FZ=FZ, P=P)

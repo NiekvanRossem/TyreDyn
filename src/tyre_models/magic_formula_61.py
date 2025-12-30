@@ -51,7 +51,6 @@ class MF61(TyreBase):
         # correction factors to avoid singularities at low speed
         self.eps_r      = 1e-6
         self.eps_x      = 1e-6
-        self.eps_gamma  = 1e-6
         self.eps_kappa  = 1e-6
         self.eps_V      = 0.1  # set to 0.1 as suggested by Pacejka
 
@@ -62,9 +61,9 @@ class MF61(TyreBase):
         self.A_mu = 10.0
 
         # import helper functions
-        self.correction = CorrectionsMF61(self)
-        self.normalize  = Normalize(self)
-        self.common     = CommonMF61(self)
+        self.normalize      = Normalize(self)
+        self.correction     = CorrectionsMF61(self)     # depends on normalize
+        self.common         = CommonMF61(self)          # depends on normalize and correction
 
         # import modules (order is important here since some modules depend on others)
         self.friction       = FrictionMF61(self)        # depends only on helper functions
@@ -83,15 +82,16 @@ class MF61(TyreBase):
 
     def find_forces(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> list[SignalLike]:
         """
@@ -109,11 +109,13 @@ class MF61(TyreBase):
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VC : SignalLike, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
         VCX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -125,24 +127,23 @@ class MF61(TyreBase):
         """
 
         # find planar forces
-        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, angle_unit=angle_unit)
-        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                          angle_unit=angle_unit)
+        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, angle_unit=angle_unit)
+        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
         return [FX, FY, FZ]
 
     def find_moments(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            VX:  SignalLike = None,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            VX:   SignalLike = None,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> list[SignalLike]:
         """
@@ -169,7 +170,7 @@ class MF61(TyreBase):
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -182,27 +183,25 @@ class MF61(TyreBase):
 
         VX = VCX if VCX is not None else VX
 
-        MX = self.moments.find_mx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
+        MX = self.moments.find_mx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        MY = self.moments.find_my_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VX, VS=VS, PHIT=PHIT,
                                            angle_unit=angle_unit)
-        MY = self.moments.find_my_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VS=VS, PHI=PHI,
-                                           angle_unit=angle_unit)
-        MZ = self.moments.find_mz_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                           angle_unit=angle_unit)
+        MZ = self.moments.find_mz_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
         return [MX, MY, MZ]
 
     def find_force_moment(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            VX:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            VX:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> list[SignalLike]:
         """
@@ -211,7 +210,6 @@ class MF61(TyreBase):
 
         Parameters
         ----------
-        *
         SA : SignalLike
             Slip angle.
         SL : SignalLike
@@ -231,7 +229,7 @@ class MF61(TyreBase):
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -242,22 +240,22 @@ class MF61(TyreBase):
             Force and moment vector.
         """
 
-        [FX, FY, FZ] = self.find_forces(SA, SL, FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
-        [MX, MY, MZ] = self.find_moments(SA, SL, FZ, VX=VX, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        [FX, FY, FZ] = self.find_forces(SA, SL, FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        [MX, MY, MZ] = self.find_moments(SA, SL, FZ, VX=VX, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
         return [FX, FY, FZ, MX, MY, MZ]
 
     def find_lateral_output(
             self,
-            SA:  SignalLike,
-            FZ:  SignalLike,
-            N:   SignalLike,
+            SA:   SignalLike,
+            FZ:   SignalLike,
+            N:    SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: Literal["rad", "deg"] = "rad"
     ) -> list[SignalLike]:
         """
@@ -282,7 +280,7 @@ class MF61(TyreBase):
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -293,11 +291,11 @@ class MF61(TyreBase):
             Lateral output vector.
         """
 
-        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
-        MX = self.moments.find_mx_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
-        MZ = self.moments.find_mz_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
-        #RL = self.radius.find_loaded_radius(0.0, FY, FZ, N, P=P)
-        sigma_y = self.find_lateral_relaxation(FZ, IA=P, PHI=IA, angle_unit=PHI)
+        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        MX = self.moments.find_mx_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        MZ = self.moments.find_mz_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        _, _, RL, _ = self.radius.find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
+        sigma_y = self.find_lateral_relaxation(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
         return [FY, MX, MZ, RL, sigma_y]
 
     def find_longitudinal_output(
@@ -308,6 +306,7 @@ class MF61(TyreBase):
             *,
             P:  SignalLike = None,
             IA: SignalLike = 0.0,
+            VC: SignalLike = None,
             VS: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> list[SignalLike]:
@@ -327,6 +326,8 @@ class MF61(TyreBase):
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VC : SignalLike, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to zero if not specified).
         angle_unit : str, optional
@@ -334,31 +335,30 @@ class MF61(TyreBase):
 
         Returns
         -------
-        FX, MY, RL, RE, sigma_x: list[SignalLike]
+        FX, MY, RL, RE, sigma_x : list[SignalLike]
             Longitudinal output vector.
         """
 
-        FX = self.forces.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        FX = self.forces.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VS=VS, PHIT=PHI, angle_unit=angle_unit)
         MY = self.forces.find_my_pure(SL, FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
-        #RL = self.radius.find_loaded_radius(FX, 0.0, FZ, N, P=P)
-        #RE = self.radius.find_effective_radius(FZ, N, P=P)
+        _, RE, RL, _ = self.radius.find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
         sigma_x = self.relaxation.find_longitudinal_relaxation(FZ=FZ, P=P)
         return [FX, MY, RL, RE, sigma_x]
 
     def find_full_output(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            VX:  SignalLike,
-            N:   SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            VX:   SignalLike,
+            N:    SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> list[SignalLike]:
         """
@@ -388,7 +388,7 @@ class MF61(TyreBase):
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : str, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -406,13 +406,12 @@ class MF61(TyreBase):
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2,
-                                                 angle_unit=angle_unit)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2, angle_unit=angle_unit)
             zeta_6 = self.turn_slip._find_zeta_6(PHI)
-            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                                 angle_unit=angle_unit)
+            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
             zeta_8 = self.turn_slip._find_zeta_8(FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
         else:
             zeta_0 = self.zeta_default
@@ -423,24 +422,17 @@ class MF61(TyreBase):
             zeta_8 = self.zeta_default
 
         # force and moment vector
-        [FX, FY, FZ, MX, MY, MZ] = self.find_force_moment(SA, SL, FZ, VX, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                                          angle_unit=angle_unit)
+        [FX, FY, FZ, MX, MY, MZ] = self.find_force_moment(SA, SL, FZ, VX, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
         # residual self-aligning couple
         MZR = self.moments._mz_main_routine(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, zeta_0=zeta_0,
                                             zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7, zeta_8=zeta_8,
                                             combined_slip=True, angle_unit=angle_unit)
 
-        # free, loaded, and effective radii, and deflection
-        #R_omega = self.radius.find_free_radius(N) if not self._use_mfeval_mode else None
-        #RE      = self.radius.find_effective_radius(FZ, N, P=P)
-        #RL      = self.radius.find_loaded_radius(FX, FY, FZ, N, P=P)
-        #rho     = self.radius.find_deflection(FX, FY, FZ, N, P=P)
         R_omega, RE, RL, rho = self.radius.find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
 
         # pneumatic trail
-        t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                           angle_unit=angle_unit)
+        t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
         # friction coefficients
         mu_x = self.friction.find_mu_x(FZ=FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
@@ -456,11 +448,11 @@ class MF61(TyreBase):
 
         # slip stiffness
         KXK = self.gradient.find_slip_stiffness(FZ=FZ, P=P)
-        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
+        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
 
         # relaxation length
         sigma_x = self.relaxation.find_longitudinal_relaxation(FZ=FZ, P=P)
-        sigma_y = self.relaxation.find_lateral_relaxation(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
+        sigma_y = self.relaxation.find_lateral_relaxation(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
 
         # instantaneous slip stiffness
         iKYA = self.gradient.find_instant_kya(SA=SA, FY=FY)
@@ -470,7 +462,7 @@ class MF61(TyreBase):
         if self._use_mfeval_mode:
 
             # compatibility mode. Output vector has the same order as MFeval
-            output = [FX, FY, FZ, MX, MY, MZ, SL, SA, IA, PHI, VX, P, RE, rho, 2 * a,
+            output = [FX, FY, FZ, MX, MY, MZ, SL, SA, IA, PHIT, VX, P, RE, rho, 2 * a,
                       t, mu_x, mu_y, N, RL, 2 * b, MZR, Cx, Cy, Cz, KYA, sigma_x, sigma_y, iKYA, KXK]
         else:
 
@@ -478,7 +470,7 @@ class MF61(TyreBase):
             output = [
                 FX, FY, FZ,                 # FORCES
                 MX, MY, MZ,                 # MOMENTS
-                SL, SA, IA, PHI, VX, P, N,  # INPUT STATE
+                SL, SA, IA, PHIT, VX, P, N,  # INPUT STATE
                 R_omega, RE, rho, RL,       # RADII
                 2*a, 2*b,                   # CONTACT PATCH
                 t,                          # TRAIL
@@ -496,65 +488,65 @@ class MF61(TyreBase):
     @wraps(ForcesMF61.find_fx_pure)
     def find_fx_pure(
             self,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.forces.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        return self.forces.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(ForcesMF61.find_fy_pure)
     def find_fy_pure(
             self,
-            SA:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        return self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(ForcesMF61.find_fx_combined)
     def find_fx_combined(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                            angle_unit=angle_unit)
+        return self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(ForcesMF61.find_fy_combined)
     def find_fy_combined(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: Literal["deg", "rad"] = "rad"
     ) -> SignalLike:
-        return self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                            angle_unit=angle_unit)
+        return self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     #------------------------------------------------------------------------------------------------------------------#
     # MOMENTS
@@ -562,17 +554,17 @@ class MF61(TyreBase):
     @wraps(MomentsMF61.find_mx_pure)
     def find_mx_pure(
             self,
-            SA:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: Literal["deg", "rad"] = "rad"
     ) -> SignalLike:
-        return self.moments.find_mx_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        return self.moments.find_mx_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(MomentsMF61.find_my_pure)
     def find_my_pure(
@@ -582,82 +574,94 @@ class MF61(TyreBase):
             *,
             P:  SignalLike = None,
             IA: SignalLike = 0.0,
+            VC: SignalLike = None,
             VX: SignalLike = None,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.moments.find_my_pure(SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, angle_unit=angle_unit)
+        return self.moments.find_my_pure(SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VX, angle_unit=angle_unit)
 
     @wraps(MomentsMF61.find_mz_pure)
     def find_mz_pure(
             self,
-            SA:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
          angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.moments.find_mz_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                         angle_unit=angle_unit)
+        return self.moments.find_mz_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(MomentsMF61.find_mx_combined)
     def find_mx_combined(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.moments.find_mx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                             angle_unit=angle_unit)
+        return self.moments.find_mx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(MomentsMF61.find_my_combined)
     def find_my_combined(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VX:  SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VX:   SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.moments.find_my_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VS=VS, PHI=PHI,
+        return self.moments.find_my_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VX, VS=VS, PHIT=PHIT,
                                              angle_unit=angle_unit)
 
     @wraps(MomentsMF61.find_mz_combined)
     def find_mz_combined(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.moments.find_mz_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                             angle_unit=angle_unit)
+        return self.moments.find_mz_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     #------------------------------------------------------------------------------------------------------------------#
     # RADIUS AND DEFLECTION
+
+    @wraps(RadiusMF61.find_radius)
+    def find_radius(
+            self,
+            *,
+            FX: SignalLike,
+            FY: SignalLike,
+            FZ: SignalLike,
+            N:  SignalLike,
+            P:  SignalLike = None
+    ) -> list[SignalLike]:
+        return self.radius.find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
+
     """
     @wraps(RadiusMF61.find_deflection)
     def find_deflection(
@@ -773,37 +777,35 @@ class MF61(TyreBase):
     @wraps(TrailMF61.find_trail_pure)
     def find_trail_pure(
             self,
-            SA:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.trail.find_trail_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                          angle_unit=angle_unit)
+        return self.trail.find_trail_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(TrailMF61.find_trail_combined)
     def find_trail_combined(
             self,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                              angle_unit=angle_unit)
+        return self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
     #------------------------------------------------------------------------------------------------------------------#
     # GRADIENTS
@@ -811,14 +813,14 @@ class MF61(TyreBase):
     @wraps(GradientsMF61.find_cornering_stiffness)
     def find_cornering_stiffness(
             self,
-            FZ:  SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
+        return self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(GradientsMF61.find_slip_stiffness)
     def find_slip_stiffness(
@@ -861,14 +863,14 @@ class MF61(TyreBase):
     @wraps(RelaxationMF61.find_lateral_relaxation)
     def find_lateral_relaxation(
             self,
-            FZ:  SignalLike,
+            FZ:   SignalLike,
             *,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
-        return self.relaxation.find_lateral_relaxation(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
+        return self.relaxation.find_lateral_relaxation(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
 
     @wraps(RelaxationMF61.find_longitudinal_relaxation)
     def find_longitudinal_relaxation(

@@ -26,14 +26,14 @@ class TrailMF61:
     def find_trail_pure(
             self,
             *,
-            SA:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -55,7 +55,7 @@ class TrailMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -73,13 +73,14 @@ class TrailMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, FZ, P, IA, VC, VCX, VS, PHI = self._format_check([SA, FZ, P, IA, VC, VCX, VS, PHI])
+            SA, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, FZ, P, IA, VC, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_5 = self.turn_slip._find_zeta_5(PHI)
         else:
             zeta_5 = self.zeta_default
@@ -98,15 +99,15 @@ class TrailMF61:
     def find_trail_combined(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: Literal["rad", "deg"] = "rad"
     ) -> SignalLike:
         """
@@ -130,7 +131,7 @@ class TrailMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -148,13 +149,14 @@ class TrailMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, SL, FZ, P, IA, VC, VCX, VS, PHI = self._format_check([SA, SL, FZ, P, IA, VC, VCX, VS, PHI])
+            SA, SL, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VC, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_5 = self.turn_slip._find_zeta_5(PHI)
         else:
             zeta_5 = self.zeta_default
@@ -172,11 +174,20 @@ class TrailMF61:
         # corrected cornering stiffness (4.E39)
         KYA_prime = KYA + self.eps_kappa * np.sign(KYA)
 
-        # corrected slip angle (4.E77) TODO: change to (A55)
-        alpha_t_eq = np.sqrt(alpha_t ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2) * np.sign(alpha_t)
+        # corrected slip angle (A55)
+        alpha_t_eq = self.atan(np.sqrt(self.tan(alpha_t) ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2)) * np.sign(alpha_t)
+
+        # NOTE: Equation (4.E77) from the book (shown below) does not match the TNO solver, and thus equation (A55) from
+        # the paper is used instead (via Marco Furlan).
+        # alpha_t_eq = np.sqrt(alpha_t ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2) * np.sign(alpha_t)
 
         # pneumatic trail (4.E73)
-        t = DT * self.cos(CT * self.atan(BT * alpha_t_eq - ET * (BT * alpha_t_eq - self.atan(BT * alpha_t_eq)))) * cos_prime_alpha
+        t = (DT * self.cos(CT * self.atan(BT * alpha_t_eq - ET * (BT * alpha_t_eq - self.atan(BT * alpha_t_eq))))
+             * cos_prime_alpha * self.LFZO)
+
+        # NOTE: the trail above is multiplied with LFZO to match the TNO solver. This is not in any official documents,
+        # but was discovered by Marco Furlan.
+
         return t
 
     #------------------------------------------------------------------------------------------------------------------#
@@ -216,20 +227,28 @@ class TrailMF61:
         LMUY_star  = self.correction._find_lmu_star(VS=VS, V0=V0, LMU=self.LMUY)
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
-        # stiffness factor (4.E40) TODO QBZ6 changed to QBZ4
-        BT = (self.QBZ1 + self.QBZ2 * dfz + self.QBZ3 * dfz ** 2) * (1.0 + self.QBZ5 * np.abs(gamma_star) + self.QBZ4 * gamma_star ** 2) * self.LYKA / LMUY_prime
+        # stiffness factor (A58)
+        BT = ((self.QBZ1 + self.QBZ2 * dfz + self.QBZ3 * dfz ** 2) * (1.0 + self.QBZ4 * IA + self.QBZ5 * np.abs(IA))
+              * self.LYKA / LMUY_star)
 
-        # TODO: Figure out which version for BT to use. QBZ4 is not is the book by Pacejka & Besselink, but it is in their 2010 paper
-        # BT = (QBZ1 + QBZ2 * dfz + QBZ3 * dfz ** 2) * (1.0 + QBZ4 + QBZ5 * np.abs(gamma_star) + QBZ6 * gamma_star ** 2) * LYKA / LMUY_prime
+        # NOTE: equation (4.E40) in the book (shown in a comment below) does not match the TNO solver. Instead, Equation
+        # (A58) from the paper is used above. The parameter QBZ6 is changed to QBZ4 as the former does not exist in TIR
+        # files (via Marco Furlan).
+        # BT = ((self.QBZ1 + self.QBZ2 * dfz + self.QBZ3 * dfz ** 2) * (1.0 + self.QBZ5 * np.abs(gamma_star) + self.QBZ6 * gamma_star ** 2) * self.LYKA / LMUY_star)
 
         # shape factor (4.E41)
         CT = self.QCZ1
 
-        # static peak factor (4.E42)
-        DT0 = self.common._find_dt0(FZ=FZ, dfz=dfz, dpi=dpi, VCX=VCX, FZ0_prime=FZ0_prime, R0=R0)
+        # static peak factor (4.E42) TODO find other uses of DT0
+        #DT0 = self.common._find_dt0(FZ=FZ, dfz=dfz, dpi=dpi, VCX=VCX, FZ0_prime=FZ0_prime, R0=R0)
 
-        # peak factor (4.E43)
-        DT = DT0 * (1.0 + self.QDZ3 * np.abs(gamma_star) + self.QDZ4 * gamma_star ** 2) * zeta_5
+        # peak factor(A60)
+        DT = ((self.QDZ1 + self.QDZ2 * dfz) * (1.0 - self.PPZ1 * dpi) * (1.0 + self.QDZ3 * IA + self.QDZ4 * IA ** 2)
+              * FZ * (R0 / FZ0_prime) * self.LTR * zeta_5)
+
+        # NOTE: equation above is taken from the paper instead of the book. Equation (4.E43) from the book (shown in a
+        # comment below) does not match the TNO solver (via Marco Furlan):
+        # DT = DT0 * (1.0 + self.QDZ3 * np.abs(gamma_star) + self.QDZ4 * gamma_star ** 2) * zeta_5
 
         # horizontal shift (4.E35)
         S_HT = self.QHZ1 + self.QHZ2 * dfz + (self.QHZ3 + self.QHZ4 * dfz) * gamma_star

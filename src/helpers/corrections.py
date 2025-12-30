@@ -9,6 +9,7 @@ class CorrectionsMF61:
     def __init__(self, model):
         """Make the properties of the overarching ``MF61`` class and other modules available."""
         self._model = model
+        self.normalize = model.normalize
 
     def __getattr__(self, name):
         """Make the tyre coefficients directly available."""
@@ -76,8 +77,49 @@ class CorrectionsMF61:
         """Finds the correction factor for cosine terms when dealing with large slip angles."""
 
         # corrected wheel center speed (4.E6a)
-        VC_prime = VC + self.eps_V
+        VC_prime = self._find_vc_prime(VC)
 
         # cosine correction (4.E6)
         cos_prime_alpha = VCX / VC_prime
         return cos_prime_alpha
+
+    def _find_vc_prime(self, VC: SignalLike) -> SignalLike:
+        """Returns the singularity-protected contact patch speed."""
+
+        # corrected wheel center speed (4.E6a)
+        VC_prime = VC + self.eps_V
+
+        return VC_prime
+
+    def _find_phi(
+            self,
+            *,
+            FZ:   SignalLike,
+            N:    SignalLike,
+            VC:   SignalLike,
+            IA:   SignalLike,
+            PHIT: SignalLike) -> SignalLike:
+        """Returns the total spin of the tyre."""
+
+        # normalize load
+        dfz = self.normalize.find_dfz(FZ)
+
+        # singularity-protected speed
+        VC_prime = self._find_vc_prime(VC)
+
+        # find the total spin velocity (4.75)
+        psi_dot = - PHIT / VC_prime
+
+        # camber reduction factor
+        eps_gamma = self._find_epsilon_gamma(dfz)
+
+        # total tyre spin (4.76)
+        PHI = (1.0 / VC_prime) * (psi_dot - (1.0 - eps_gamma) * N * self.sin(IA))
+        return PHI
+
+    def _find_epsilon_gamma(self, dfz: SignalLike) -> SignalLike:
+        """Returns the camber reduction factor for turn slip."""
+
+        # camber reduction factor (4.90)
+        eps_gamma = self.PECP1 * (1.0 - self.PECP2 * dfz)
+        return eps_gamma

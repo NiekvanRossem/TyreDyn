@@ -31,12 +31,13 @@ class ForcesMF61:
     def find_fx_pure(
             self,
             *,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -52,9 +53,11 @@ class ForcesMF61:
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
+        VC : SignalLike, optional
+            Contact patch speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -66,15 +69,16 @@ class ForcesMF61:
         """
 
         # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
+        P  = self.INFLPRES if P is None else P
+        VC = self.LONGVL if VC is None else VC
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SL, FZ, P, IA, VS, PHI = self._format_check([SL, FZ, P, IA, VS, PHI])
+            SL, FZ, P, IA, VC, VS, PHIT = self._format_check([SL, FZ, P, IA, VC, VS, PHIT])
 
         # perform limit checks
         if self._check_limits:
-            self._limit_check(None, SL, FZ, P, IA)
+            self._limit_check(SA=None, SL=SL, FZ=FZ, P=P, IA=IA)
 
         # correct angle if mismatched between input array and TIR file
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
@@ -84,6 +88,7 @@ class ForcesMF61:
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI    = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_1 = self.turn_slip._find_zeta_1(SL=SL, FZ=FZ, PHI=PHI)
         else:
             zeta_1 = self.zeta_default
@@ -132,14 +137,15 @@ class ForcesMF61:
     def find_fx_combined(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -147,6 +153,7 @@ class ForcesMF61:
 
         Parameters
         ----------
+        VC
         SA : SignalLike
             Slip angle.
         SL : SignalLike
@@ -161,7 +168,7 @@ class ForcesMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -174,11 +181,12 @@ class ForcesMF61:
 
         # set default values for optional arguments
         P   = self.INFLPRES if P is None else P
+        VC  = self.LONGVL if VC is None else VC
         VCX = self.LONGVL if VCX is None else VCX
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VS, PHI = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHI])
+            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
@@ -212,7 +220,7 @@ class ForcesMF61:
         GXA = np.cos(C_XA * self.atan(B_XA * alpha_s - E_XA * (B_XA * alpha_s - self.atan(B_XA * alpha_s)))) / GXAO
 
         # force for pure slip
-        FX0 = self.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        FX0 = self.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
         # longitudinal force for combined slip (4.E50)
         FX = FX0 * GXA
@@ -224,13 +232,13 @@ class ForcesMF61:
     def find_fy_pure(
             self,
             *,
-            SA:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -250,7 +258,7 @@ class ForcesMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -267,17 +275,17 @@ class ForcesMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, FZ, P, IA, VS, VCX, PHI = self._format_check([SA, FZ, P, IA, VS, VCX, PHI])
+            SA, FZ, P, IA, VS, VCX, PHIT = self._format_check([SA, FZ, P, IA, VS, VCX, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI    = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0  # (4.83)
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2,
-                                                 angle_unit=angle_unit)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2, angle_unit=angle_unit)
         else:
             zeta_0 = self.zeta_default
             zeta_2 = self.zeta_default
@@ -302,7 +310,7 @@ class ForcesMF61:
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # cornering stiffness (4.E25)
-        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHI=PHI, angle_unit=angle_unit)
+        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
 
         # camber stiffness (4.E30)
         KYCO = self.gradient.find_camber_stiffness(FZ=FZ)
@@ -342,14 +350,14 @@ class ForcesMF61:
     def find_fy_combined(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -371,7 +379,7 @@ class ForcesMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -388,13 +396,14 @@ class ForcesMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VS, PHI = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHI])
+            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
         else:
             zeta_2 = self.zeta_default
@@ -403,7 +412,7 @@ class ForcesMF61:
         dfz = self.normalize._find_dfz(FZ)
 
         # side force for pure slip
-        FY0 = self.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        FY0 = self.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
         # corrected slip angle (4.E53)
         alpha_star = self.correction._find_alpha_star(SA=SA, VCX=VCX)

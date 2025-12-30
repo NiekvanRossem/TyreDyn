@@ -122,8 +122,15 @@ class TyreBase:
 
         return sig_out, angle_unit
 
-    def _limit_check(self, SA: SignalLike = None, SL: SignalLike = None, FZ: SignalLike = None,
-                     P: SignalLike = None, IA: SignalLike = None):
+    def _limit_check(
+            self,
+            *,
+            SA: SignalLike = None,
+            SL: SignalLike = None,
+            FZ: SignalLike = None,
+            P:  SignalLike = None,
+            IA: SignalLike = None
+    ):
         """
         Checks if the input signals fall within the limits specified in the TIR file.
 
@@ -188,11 +195,10 @@ class TyreBase:
            - ``int``
            - ``float``
            - ``list`` of either ``int`` or ``float``
-           - ``tuple`` of either int or ``float``
-           - ``np.ndarray`` of either ``int`` or ``float`` (must have shape ``(n,)`` to enforce element-wise algebra)
+           - ``np.ndarray`` (must have shape ``(n,)`` to enforce element-wise algebra)
 
-        If an input signal has the shape ``(n,1)``, this function will flatten them to ``(n,)``. Higher order arrays
-        will generate an error.
+        If an input signal is a NumPy array with the shape ``(n,1)``, this function will flatten them to ``(n,)``.
+        Higher order arrays will generate an error.
 
         Parameters
         ----------

@@ -133,8 +133,8 @@ class DimensionSection(FloatSection):
 The following classes are used to validate the parameters in all the TIR file sections containing only floats. 
 
 To add support for a new tyre model, simply add its name as a header to the `required_params` dictionary, and add all 
-the params that should be present to this section. Currently only supports tyre tyre_models formatted as MFx.x. Other names 
-will either be reformatted to MFx.x if they're close enough, or an error will occur. See `normalize_fittyp` for more 
+the params that should be present to this section. Currently only supports tyre tyre_models formatted as MFx.x_tyre. Other names 
+will either be reformatted to MFx.x_tyre if they're close enough, or an error will occur. See `normalize_fittyp` for more 
 information.  
 
 To add a new parameter category, create a new class that inherits `FloatSection`, and define `required_parameters` 

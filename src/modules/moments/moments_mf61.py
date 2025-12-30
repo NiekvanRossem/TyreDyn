@@ -33,13 +33,13 @@ class MomentsMF61:
     def find_mx_pure(
             self,
             *,
-            SA:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -59,7 +59,7 @@ class MomentsMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -76,13 +76,13 @@ class MomentsMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, FZ, P, IA, VCX, VS, PHI = self._format_check([SA, FZ, P, IA, VCX, VS, PHI])
+            SA, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, FZ, P, IA, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # find side force
-        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
         # find overturning moment
         MX = self.__mx_main_routine(FY=FY, FZ=FZ, P=P, IA=IA)
@@ -91,11 +91,12 @@ class MomentsMF61:
     def find_my_pure(
             self,
             *,
-            SL: SignalLike,
-            FZ: SignalLike,
-            P:  SignalLike = None,
-            IA: SignalLike = 0.0,
-            VX: SignalLike = None,
+            SL:  SignalLike,
+            FZ:  SignalLike,
+            P:   SignalLike = None,
+            IA:  SignalLike = 0.0,
+            VC:  SignalLike = None,
+            VCX: SignalLike = None,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -103,6 +104,7 @@ class MomentsMF61:
 
         Parameters
         ----------
+        VC
         SL : SignalLike
             Slip ratio.
         FZ : SignalLike
@@ -111,7 +113,7 @@ class MomentsMF61:
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VX : SignalLike, optional
+        VCX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -124,33 +126,34 @@ class MomentsMF61:
 
         # set default values for optional arguments
         P  = self.INFLPRES if P is None else P
-        VX = self.LONGVL if VX is None else VX
+        VC = self.LONGVL if VC is None else VC
+        VCX = self.LONGVL if VCX is None else VCX
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SL, FZ, P, IA, VX = self._format_check([SL, FZ, P, IA, VX])
+            SL, FZ, P, IA, VCX = self._format_check([SL, FZ, P, IA, VCX])
 
         # correct angle if mismatched between input array and TIR file
         IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # calculate FX
-        FX = self.forces.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        FX = self.forces.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VS=VS, PHIT=PHI, angle_unit=angle_unit)
 
         # find rolling resistance moment
-        MY = self.__my_main_routine(FX=FX, FZ=FZ, P=P, IA=IA, VX=VX)
+        MY = self.__my_main_routine(FX=FX, FZ=FZ, P=P, IA=IA, VCX=VCX)
         return MY
 
     def find_mz_pure(
             self,
             *,
-            SA:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -172,7 +175,7 @@ class MomentsMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -190,20 +193,19 @@ class MomentsMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, FZ, P, IA, VC, VCX, VS, PHI = self._format_check([SA, FZ, P, IA, VC, VCX, VS, PHI])
+            SA, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, FZ, P, IA, VC, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0  # (4.83)
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2,
-                                                 angle_unit=angle_unit)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2, angle_unit=angle_unit)
             zeta_6 = self.turn_slip._find_zeta_6(PHI)
-            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                                 angle_unit=angle_unit)
+            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
             zeta_8 = self.turn_slip._find_zeta_8(FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
         else:
             zeta_0 = self.zeta_default
@@ -214,10 +216,10 @@ class MomentsMF61:
             zeta_8 = self.zeta_default
 
         # pneumatic trail
-        t = self.trail.find_trail_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        t = self.trail.find_trail_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
         # find side force
-        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
+        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
         # residual self-aligning couple (4.E36)
         MZR = self._mz_main_routine(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, zeta_0=zeta_0,
@@ -238,14 +240,14 @@ class MomentsMF61:
     def find_mx_combined(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -267,7 +269,7 @@ class MomentsMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Slip speed magnitude (will default to zero if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -284,13 +286,13 @@ class MomentsMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VS, PHI = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHI])
+            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # find side force
-        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
+        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT,
                                           angle_unit=angle_unit)
 
         # find overturning couple
@@ -300,14 +302,15 @@ class MomentsMF61:
     def find_my_combined(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VX:  SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -325,11 +328,13 @@ class MomentsMF61:
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
             Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VX : SignalLike, optional
+        VC : SignalLike, optional
             Contact patch speed (will default to ``LONGVL`` if not specified).
+        VCX : SignalLike, optional
+            Wheel center longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to zero if not specified).
-        PHI: SignalLike, optional
+        PHIT: SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -344,36 +349,35 @@ class MomentsMF61:
         # NOTE: it is assumed that difference between contact patch and wheel center speed is negligible as (eqn 7.4
         # from Pacejka)
         P   = self.INFLPRES if P is None else P
-        VX  = self.LONGVL if VX is None else VX
-        VCX = self.LONGVL if VX is None else VX
+        VCX = self.LONGVL if VCX is None else VCX
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VX, VS, PHI = self._format_check([SA, SL, FZ, P, IA, VCX, VX, VS, PHI])
+            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # calculate FX
-        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
+        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT,
                                           angle_unit=angle_unit)
 
         # find rolling resistance moment
-        MY = self.__my_main_routine(FX=FX, FZ=FZ, P=P, IA=IA, VX=VX)
+        MY = self.__my_main_routine(FX=FX, FZ=FZ, P=P, IA=IA, VCX=VCX)
         return MY
 
     def find_mz_combined(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike = None,
-            IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0,
-            PHI: SignalLike = 0.0,
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike = None,
+            IA:   SignalLike = 0.0,
+            VC:   SignalLike = None,
+            VCX:  SignalLike = None,
+            VS:   SignalLike = 0.0,
+            PHIT: SignalLike = 0.0,
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
         """
@@ -397,7 +401,7 @@ class MomentsMF61:
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         VS : SignalLike, optional
             Contact patch slip speed (will default to ``LONGVL`` if not specified).
-        PHI : SignalLike, optional
+        PHIT : SignalLike, optional
             Turn slip (will default to zero if not specified).
         angle_unit : string, optional
             Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
@@ -419,20 +423,19 @@ class MomentsMF61:
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
-            SA, SL, FZ, P, IA, VC, VCX, VS, PHI = self._format_check([SA, SL, FZ, P, IA, VC, VCX, VS, PHI])
+            SA, SL, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VC, VCX, VS, PHIT])
 
         # correct angle if mismatched between input array and TIR file
         [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
+            PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0
-            zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2,
-                                                 angle_unit=angle_unit)
-            zeta_6 = self.turn_slip._find_zeta_6(PHI)
-            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                                 angle_unit=angle_unit)
+            zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHIT)
+            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2, angle_unit=angle_unit)
+            zeta_6 = self.turn_slip._find_zeta_6(PHIT)
+            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
             zeta_8 = self.turn_slip._find_zeta_8(FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
         else:
             zeta_0 = self.zeta_default
@@ -443,30 +446,39 @@ class MomentsMF61:
             zeta_8 = self.zeta_default
 
         # scaled nominal loads
-        FZ0_prime = FZ0 * self.LFZO
+        #FZ0_prime = FZ0 * self.LFZO
 
         # normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
 
         # corrected camber angle
-        gamma_star = self.correction._find_gamma_star(IA)
+        #gamma_star = self.correction._find_gamma_star(IA)
 
         # tyre forces
-        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                          angle_unit=angle_unit)
-        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                          angle_unit=angle_unit)
+        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
-        # side force with zero camber (4.E74)
-        FY_prime = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=0.0, VCX=VCX, VS=VS, PHI=PHI,
-                                                angle_unit=angle_unit)
+        # combined slip scaling factor for side force
+        GYK = self.common._find_gyk(SA=SA, SL=SL, FZ=FZ, IA=IA, VCX=VCX)
+
+        # NOTE: in the equation above inclination angle is taken into account to match the TNO solver (via Marco Furlan).
+
+        # pure slip side force without camber or turn slip
+        FY0 = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=0.0, VCX=VCX, VS=VS, PHIT=0.0, angle_unit=angle_unit)
+
+        # combined slip side force (4.E74)
+        FY_prime = FY0 * GYK
 
         # pneumatic trail
-        t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHI=PHI,
-                                           angle_unit=angle_unit)
+        t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
 
-        # pneumatic scrub (4.E76)
-        s = R0 * (self.SSZ1 + self.SSZ2 * (FY / FZ0_prime) + (self.SSZ3 + self.SSZ4 * dfz) * gamma_star) * self.LS
+        # pneumatic scrub (A56)
+        s = R0 * (self.SSZ1 + self.SSZ2 * (FY / FZ0) + (self.SSZ3 + self.SSZ4 * dfz) * IA) * self.LS
+
+        # NOTE: The paper uses FZ0 in the equation above (A56), instead of FZ0_prime, which the book uses (4.E76, shown
+        # below). The equation in the paper matches the TNO solver better, and is thus used (via Marco Furlan). Equation
+        # (A56) also uses the uncorrected inclination angle IA instead of gamma_star.
+        # s = R0 * (self.SSZ1 + self.SSZ2 * (FY / FZ0_prime) + (self.SSZ3 + self.SSZ4 * dfz) * gamma_star) * self.LS
 
         # self-aligning couple from side force (4.E72)
         MZ_prime = -t * FY_prime
@@ -500,25 +512,55 @@ class MomentsMF61:
         # normalize pressure
         dpi = self.normalize._find_dpi(P)
 
-        # overturning couple (4.E69) -- FZ trig functions do not get corrected to degrees
-        base_effect     = self.QSX1 * self.LVMX
-        pressure_effect = self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
-        fy_effect       = self.QSX3 * FY / FZ0
-        fz_effect       = self.QSX4 * np.cos(self.QSX5 * np.atan2(self.QSX6 * FZ / FZ0, 1) ** 2)
-        camber_effect_1 = np.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * FY / FZ0, 1))
-        camber_effect_2 = self.QSX10 * np.atan2(self.QSX11 * FZ / FZ0, 1) * IA
-        MX = R0 * FZ * (base_effect - pressure_effect + fy_effect + fz_effect * camber_effect_1 + camber_effect_2) * self.LMX
+        # define overturning couple parameter sets
+        set1 = [self.QSX1, self.QSX2, self.QSX3, self.QSX4, self.QSX5, self.QSX6,
+                self.QSX7, self.QSX8, self.QSX9, self.QSX10, self.QSX11]
+        set2 = [self.QSX12, self.QSX13, self.QSX14]
+
+        # TODO: check if the book equation is for MF 6.1 specifically. In that case split them up.
+        # NOTE: the equation manual for MF 6.2 states that the equation for the overturning couple needs to be split up
+        # into two parts: the first using the parameters QSX1 to QSX11, and the second using QSX12 to QSX14. The first
+        # set is the general formulation, and the second set is an alternative formulation mainly used for motorcycle
+        # tyres. If one set is used, the other should be zero! If for any reason a TIR file is provided with non-zero
+        # entries in both sets, a warning will be displayed. The equation used in this case is taken from a draft
+        # version of the 2010 paper by Besselink et al. (via Marco Furlan)
+        if any(x != 0 for x in set1) and any(y != 0 for y in set2):
+            warnings.warn("Cannot have non-zero values for both parameter sets QSX1 to QSX11 and QSX12 to QSX14.")
+
+            # overturning couple (49)
+            MX = (R0 * FZ * LMX * (self.QSX1 * self.LVMX - self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
+                                   - self.QSX12 * IA * np.abs(IA) + self.QSX3 * FY / FZ0 + self.QSX4
+                                   * np.cos(self.QSX5 * np.atan2((self.QSX6 * FZ / FZ0) ** 2, 1))
+                                  * np.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * FY / FZ0, 1))
+                                  + self.QSX10 * np.atan(self.QSX11 * FZ / FZ0) * IA)
+                  + R0 * FY * self.LMX * (self.QSX13 + self.QSX14 * np.abs(IA)))
+
+        # NOTE: in the cases where only a single parameter set is used, the equation is taken from the MF 6.2 equation
+        # manual, instead of (4.E69) from the 2012 book by Pacejka & Besselink (shown in a comment below), in order to
+        # match the TNO solver (via Marco Furlan).
+        # MX = R0 * FZ * (self.QSX1 * self.LVMX - self.QSX2 * IA * (1.0 + self.PPMX1 * dpi) + self.QSX3 * FY / FZ0
+        #                 + self.QSX4 * np.cos(self.QSX5 * np.atan2(self.QSX6 * FZ / FZ0, 1) ** 2)
+        #                 * np.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * FY / FZ0, 1)) + self.QSX10
+        #                 * np.atan2(self.QSX11 * FZ / FZ0, 1) * IA) * self.LMX
+        else:
+
+            # overturning couple (MF 6.2 equation manual) -- FZ trig functions do not get corrected to degrees
+            MX = (R0 * FZ * self.LMX * (self.QSX1 * self.LVMX - self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
+                                       + self.QSX3 * (FY / FZ0) + self.QSX4 * np.cos(self.QSX5 * np.atan2((self.QSX6 * (FZ / FZ0)) ** 2, 1))
+                                       * self.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * (FY / FZ0), 1))
+                                       + self.QSX10 * self.atan(self.QSX11 * (FZ / FZ0)) * IA) + R0 * self.LMX
+                  * (FY * (self.QSX13 + self.QSX14 * np.abs(IA)) - FZ * self.QSX12 * IA * np.abs(IA)))
 
         return MX
 
     def __my_main_routine(
             self,
             *,
-            FX: SignalLike,
-            FZ: SignalLike,
-            P:  SignalLike,
-            IA: SignalLike,
-            VX: SignalLike
+            FX:  SignalLike,
+            FZ:  SignalLike,
+            P:   SignalLike,
+            IA:  SignalLike,
+            VCX: SignalLike
     ) -> SignalLike:
         """Function containing the main ``MY`` calculation routine. To be used in ``find_my`` and ``find_my_pure``."""
 
@@ -528,16 +570,16 @@ class MomentsMF61:
         FZ0 = self.FNOMIN
         P0  = self.NOMPRES
 
-        # rolling resistance moment (4.E70)
-        base_effect     = self.QSY1
-        fx_effect       = self.QSY2 * FX / FZ0
-        speed_effect_1  = self.QSY3 * np.abs(VX / V0)
-        speed_effect_2  = self.QSY4 * (VX / V0) ** 4
-        camber_effect   = (self.QSY5 + self.QSY6 * FZ / FZ0) * IA ** 2
-        fz_effect       = (FZ / FZ0) ** self.QSY7
-        pressure_effect = (P / P0) ** self.QSY8
-        MY = (FZ * R0 * (base_effect + fx_effect + speed_effect_1 + speed_effect_2 + camber_effect)
-              * fz_effect * pressure_effect * self.LMY)
+        # rolling resistance moment (A48)
+        MY = (-R0 * FZ0 * self.LMY * (self.QSY1 + self.QSY2 * (FX / FZ0) + self.QSY3 * np.abs(VCX / V0)
+                                     + self.QSY4 * (VCX / V0) ** 4 + (self.QSY5 + self.QSY6 * (FZ / FZ0)) * IA ** 2)
+              * ((FZ / FZ0) ** self.QSY7 * (P / P0) ** self.QSY8))
+
+        # NOTE: equation (4.E70) from the book (shown in a comment below) does not match the TNO solver. Instead
+        # equation (A48) from the paper is used (via Marco Furlan).
+        # MY = (FZ * R0 * (self.QSY1 + self.QSY2 * (FX / FZ0) + self.QSY3 * np.abs(VCX / V0) + self.QSY4 * (VCX / V0) ** 4
+        #                 + (self.QSY5 + self.QSY6 * (FZ / FZ0)) * IA ** 2)
+        #       * ((FZ / FZ0) ** self.QSY7 * (P / P0) ** self.QSY8) * self.LMY)
 
         return MY
 
@@ -586,12 +628,10 @@ class MomentsMF61:
         KYA_prime = KYA + self.eps_kappa * np.sign(KYA)
 
         # vertical shift for side force (4.E29)
-        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime,
-                                             zeta_2=zeta_2)
+        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime, zeta_2=zeta_2)
 
         # horizontal shift (4.E27)
-        S_HY = self.common._find_s_hy(dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg, zeta_0=zeta_0,
-                                      zeta_4=zeta_4)
+        S_HY = self.common._find_s_hy(dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg, zeta_0=zeta_0, zeta_4=zeta_4)
 
         # horizontal shift for residual couple (4.E38)
         S_HF = S_HY + S_VY / KYA_prime
@@ -606,8 +646,13 @@ class MomentsMF61:
             # slip stiffness
             KXK = self.gradient.find_slip_stiffness(FZ=FZ)
 
-            # corrected slip angle (4.E78)
-            alpha_r_eq = np.sqrt(alpha_r ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2) * np.sign(alpha_r)
+            # corrected slip angle (A54)
+            alpha_r_eq = self.atan(np.sqrt(self.tan(alpha_r) ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2)) * np.sign(alpha_r)
+
+            # NOTE: Equation (4.E78) from the book does not match the TNO solver, thus equation (A54) from the paper is
+            # used (via Marco Furlan).
+            # alpha_r_eq = np.sqrt(alpha_r ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2) * np.sign(alpha_r)
+
             alpha_used = alpha_r_eq
         else:
             alpha_used = alpha_r

@@ -52,9 +52,9 @@ class CommonMF61:
             FZ0_prime:  SignalLike,
             R0:         NumberLike
     ) -> SignalLike:
-        """Finds the static peak factor. Used in ``TrailMF61``."""
+        """Finds the static peak factor."""
 
-        # (4.E42) TODO
+        # (4.E42)
         DT0 = FZ * (R0 / FZ0_prime) * (self.QDZ1 + self.QDZ2 * dfz) * (1.0 - self.PPZ1 * dpi) * self.LTR * np.sign(VCX)
         return DT0
 
@@ -111,13 +111,13 @@ class CommonMF61:
         dfz = self.normalize._find_dfz(FZ)
 
         # stiffness factor (4.E62)
-        B_YK = (self.RBY1 + self.RBY4 * gamma_star ** 2) * self.cos(self.atan(self.RBY2 * (alpha_star - self.RBY3))) * self.LYKA
+        BYK = (self.RBY1 + self.RBY4 * gamma_star ** 2) * self.cos(self.atan(self.RBY2 * (alpha_star - self.RBY3))) * self.LYKA
 
         # shape factor (4.E63)
-        C_YK = self.RCY1
+        CYK = self.RCY1
 
         # curvature factor (4.E64)
-        E_YK = self.REY1 + self.REY2 * dfz
+        EYK = self.REY1 + self.REY2 * dfz
 
         # horizontal shift (4.E65)
         S_HYK = self.RHY1 + self.RHY2 * dfz
@@ -126,10 +126,10 @@ class CommonMF61:
         kappa_s = SL + S_HYK
 
         # static correction (4.E60) -- slip ratio trig functions do not get corrected to degrees
-        GYKO = np.cos(C_YK * np.atan2(B_YK * S_HYK - E_YK * (B_YK * S_HYK - np.atan2(B_YK * S_HYK, 1)), 1))
+        GYKO = np.cos(CYK * np.atan2(BYK * S_HYK - EYK * (BYK * S_HYK - np.atan2(BYK * S_HYK, 1)), 1))
 
         # force correction (4.E59) -- slip ratio trig functions do not get corrected to degrees
-        GYK = np.cos(C_YK * np.atan2(B_YK * kappa_s - E_YK * (B_YK * kappa_s - np.atan2(B_YK * kappa_s, 1)), 1)) / GYKO
+        GYK = np.cos(CYK * np.atan2(BYK * kappa_s - EYK * (BYK * kappa_s - np.atan2(BYK * kappa_s, 1)), 1)) / GYKO
         return GYK
 
     def _find_s_hy(
