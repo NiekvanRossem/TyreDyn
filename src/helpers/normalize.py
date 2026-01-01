@@ -1,8 +1,11 @@
 from src.utils.formatting import SignalLike
+import numpy as np
+
+# TODO: rename
 
 class Normalize:
     """
-    Module containing the functions to normalize input signals.
+    Module containing the functions to _normalize input signals.
     """
 
     def __init__(self, model):
@@ -42,3 +45,26 @@ class Normalize:
         # normalized pressure (4.E2b)
         dpi = (P - PO) / PO
         return dpi
+
+    def _find_speeds(
+            self,
+            *,
+            SA: SignalLike,
+            SL: SignalLike,
+            VX: SignalLike
+    ) -> SignalLike:
+        """Finds the speed of the slip point ``S`` as well as the speed of point ``C``."""
+
+        # longitudinal slip speed (2.11)
+        VSX = - SL * VX
+
+        # lateral slip speed (2.12)
+        VSY = VX * self.tan(SA)
+
+        # total slip speed (3.39)
+        VS = np.sqrt(VSX ** 2 + VSY ** 2)
+
+        # total contact patch speed
+        V = np.sqrt(VX ** 2 + VSY ** 2)
+
+        return VS, V

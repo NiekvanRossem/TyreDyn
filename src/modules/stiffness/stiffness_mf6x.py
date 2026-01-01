@@ -2,10 +2,13 @@ from src.utils.formatting import SignalLike
 import numpy as np
 from typing import Literal
 
-class StiffnessMF61:
+class StiffnessMF6x:
+    """
+    Stiffness module for the MF 6.1 and MF 6.2 tyre models.
+    """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # helper functions
@@ -15,7 +18,7 @@ class StiffnessMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_lateral_stiffness(
+    def _find_lateral_stiffness(
             self,
             *,
             FZ: SignalLike,
@@ -37,17 +40,10 @@ class StiffnessMF61:
             Lateral tyre stiffness.
         """
 
-        # set default value for optional arguments
-        P = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P = self._format_check([FZ, P])
-
         # unpack tyre properties
         Cy0 = self.LATERAL_STIFFNESS
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -55,7 +51,7 @@ class StiffnessMF61:
         Cy = Cy0 * (1.0 + self.PCFY1 * dfz + self.PCFY2 * dfz ** 2) * (1.0 + self.PCFY3 * dpi)
         return Cy
 
-    def find_longitudinal_stiffness(
+    def _find_longitudinal_stiffness(
             self,
             *,
             FZ: SignalLike,
@@ -77,17 +73,10 @@ class StiffnessMF61:
             Longitudinal tyre stiffness.
         """
 
-        # set default value for optional arguments
-        P = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P = self._format_check([FZ, P])
-
         # unpack tyre properties
         Cx0 = self.LONGITUDINAL_STIFFNESS
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -95,7 +84,7 @@ class StiffnessMF61:
         Cx = Cx0 * (1.0 + self.PCFX1 * dfz + self.PCFX2 * dfz ** 2) * (1.0 + self.PCFX3 * dpi)
         return Cx
 
-    def find_vertical_stiffness(
+    def _find_vertical_stiffness(
             self,
             P: SignalLike
     ) -> SignalLike:
@@ -113,14 +102,10 @@ class StiffnessMF61:
             Vertical tyre stiffness.
         """
 
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            P = self._format_check(P)
-
         # unpack tyre properties
         CZ0 = self.VERTICAL_STIFFNESS
 
-        # normalize pressure
+        # _normalize pressure
         dpi = self.normalize._find_dpi(P)
 
         # current vertical rate (A3.5)

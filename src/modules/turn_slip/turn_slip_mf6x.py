@@ -1,17 +1,15 @@
-from src.utils.formatting import SignalLike, AngleUnit, NumberLike
 import numpy as np
 from typing import Literal
-from src.modules.gradients.gradients_mf61 import GradientsMF61
+from src.utils.formatting import SignalLike, AngleUnit, NumberLike
+from src.modules.gradients.gradients_mf6x import GradientsMF6x
 
-# TODO: when expanding this to different tyre tyre_models, figure out if BY, CY, etc have to be switched based on FITTYP.
-
-class TurnSlip:
+class TurnSlipMF6x:
     """
-    Module containing the turn slip extension functions. Turn slip is only available for MF 6.0 or newer.
+    Module containing the turn slip extension functions for the MF 6.1 and MF 6.2 tyre models.
     """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # helper functions
@@ -26,12 +24,11 @@ class TurnSlip:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    # NEEDS PHI
     def _find_zeta_1(
             self,
             *,
-            SL: SignalLike,
-            FZ: SignalLike,
+            SL:  SignalLike,
+            FZ:  SignalLike,
             PHI: SignalLike
     ) -> SignalLike:
         """Returns the turn slip correction that scales the longitudinal force."""
@@ -39,7 +36,7 @@ class TurnSlip:
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
 
-        # normalize load
+        # _normalize load
         dfz = self.normalize._find_dfz(FZ)
 
         # stiffness factor (4.106)
@@ -49,7 +46,6 @@ class TurnSlip:
         zeta_1 = np.cos(np.atan2(BXP * R0 * PHI, 1))
         return zeta_1
 
-    # NEEDS PHI
     def _find_zeta_2(
             self,
             *,
@@ -62,7 +58,7 @@ class TurnSlip:
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
 
-        # normalize vertical load
+        # _normalize vertical load
         dfz = self.normalize._find_dfz(FZ)
 
         # sharpness factor (4.78)
@@ -72,7 +68,6 @@ class TurnSlip:
         zeta_2 = self.cos(self.atan(BYP * (R0 * np.abs(PHI) + self.PDYP4 * np.sqrt(R0 * np.abs(PHI)))))
         return zeta_2
 
-    # NEEDS PHI
     def _find_zeta_3(
             self,
             PHI: SignalLike
@@ -85,18 +80,19 @@ class TurnSlip:
         zeta_3 = self.cos(self.atan(self.PKYP1 * R0 ** 2 * PHI ** 2))
         return zeta_3
 
-    # NEEDS PHI
     def _find_zeta_4(
             self,
             *,
+            SA:     SignalLike,
+            SL:     SignalLike,
             FZ:     SignalLike,
+            N:      SignalLike,
             P:      SignalLike,
             IA:     SignalLike,
             VCX:    SignalLike,
             VS:     SignalLike,
             PHI:    SignalLike,
-            zeta_2: SignalLike,
-            angle_unit: AngleUnit
+            zeta_2: SignalLike
     ) -> SignalLike:
         """Returns the turn slip correction that scales the side force."""
 
@@ -110,25 +106,25 @@ class TurnSlip:
         # corrected camber angle
         gamma_star = self.correction._find_gamma_star(IA)
 
-        # normalize load
+        # _normalize load
         dfz = self.normalize._find_dfz(FZ)
 
         # difference between camber and turn slip response
         eps_y = self.common._find_eps_y(FZ)
 
         # cornering stiffness
-        KYA = GradientsMF61.find_cornering_stiffness(self, FZ=FZ, P=P, IA=IA, PHIT=PHI, angle_unit=angle_unit)
+        KYA = GradientsMF6x._find_cornering_stiffness(self, SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHI)
 
         # NOTE: this parameter is not explained in the book or paper, but according to Kaustub Ragunathan from
         # IPG-Carmaker it is cornering stiffness for zero camber (via Marco Furlan from MFeval).
-        KYAO = GradientsMF61.find_cornering_stiffness(self, FZ=FZ, P=P, IA=0.0, PHIT=PHI, angle_unit=angle_unit)
+        KYAO = GradientsMF6x._find_cornering_stiffness(self, SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=0.0, VX=VX, PHIT=PHI)
 
         # corrected cornering stiffness (4.E39)
-        KYA_prime  = KYA  + self.eps_kappa * np.sign(KYA)
-        KYAO_prime = KYAO + self.eps_kappa * np.sign(KYAO)
+        KYA_prime  = KYA  + self._eps_kappa * np.sign(KYA)
+        KYAO_prime = KYAO + self._eps_kappa * np.sign(KYAO)
 
         # camber stiffness
-        KYCO = GradientsMF61.find_camber_stiffness(self, FZ=FZ)
+        KYCO = GradientsMF6x._find_camber_stiffness(self, FZ=FZ, P=P)
 
         # spin force stiffness (4.89)
         KYRP0 = KYCO / (1.0 - eps_y)
@@ -160,7 +156,6 @@ class TurnSlip:
         zeta_4 = 1.0 + S_HYP - S_VYg / KYA_prime
         return zeta_4
 
-    # NEEDS PHI
     def _find_zeta_5(
             self,
             PHI: SignalLike
@@ -174,7 +169,6 @@ class TurnSlip:
         zeta_5 = self.cos(self.atan(self.QDTP1 * R0 * PHI))
         return zeta_5
 
-    # NEEDS PHI
     def _find_zeta_6(
             self,
             PHI: SignalLike
@@ -185,29 +179,23 @@ class TurnSlip:
         R0 = self.UNLOADED_RADIUS
 
         # turn slip correction -- trig functions for turn slip do not get corrected to degrees
-        zeta_6 = np.cos(np.atan(self.QBRP1 * R0 * PHI)) # TODO: check if PHI and PHI_t are the same
+        zeta_6 = np.cos(np.atan(self.QBRP1 * R0 * PHI))
         return zeta_6
 
-    # NEEDS PHI AND PHIT
     def _find_zeta_7(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike,
-            IA:  SignalLike,
-            VCX: SignalLike,
-            VS:  SignalLike,
-            PHI: SignalLike,
-            angle_unit: AngleUnit
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike,
+            IA:   SignalLike,
+            VX:   SignalLike,
+            VCX:  SignalLike,
+            PHI:  SignalLike,
+            PHIT: SignalLike
     ) -> SignalLike:
-        """Returns the turn slip correction that sets the shape factor for the self-aligning couple.
-
-        Parameters
-        ----------
-        *
-        """
+        """Returns the turn slip correction that sets the shape factor for the self-aligning couple."""
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -215,7 +203,7 @@ class TurnSlip:
         FZ0_prime = FZ0 * self.LFZO
 
         # lateral friction coefficient
-        mu_y = self.friction.find_mu_y(FZ=FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
+        mu_y = self.friction._find_mu_y(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
 
         # turn slip moment at vanishing speed
         MZP_inf = self.QCRP1 * mu_y * R0 * FZ * np.sqrt(FZ / FZ0_prime) * self.LMP
@@ -227,24 +215,31 @@ class TurnSlip:
         MZP_90 = MZP_inf * (2.0 / np.pi) * np.atan2(self.QCRP2 * R0 * np.abs(PHIT), 1) * GYK
 
         # peak factor NEEDS PHI
-        DRP = self.__find_drp(FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, R0=R0, FZ0_prime=FZ0_prime, angle_unit=angle_unit)
+        DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI, R0=R0, FZ0_prime=FZ0_prime)
 
         # turn slip correction
-        zeta_7 = (2.0 / np.pi) * np.acos(MZP_90 / (np.abs(DRP) + self.eps_r))
+        zeta_7 = (2.0 / np.pi) * np.acos(MZP_90 / (np.abs(DRP) + self._eps_r))
         return zeta_7
 
-    # NEEDS PHI
     def _find_zeta_8(
             self,
             *,
+            SA:  SignalLike,
+            SL:  SignalLike,
             FZ:  SignalLike,
             P:   SignalLike,
             IA:  SignalLike,
-            VS:  SignalLike,
-            PHI: SignalLike,
-            angle_unit: AngleUnit
+            VX:  SignalLike,
+            PHI: SignalLike
     ) -> SignalLike:
-        """Returns the turn slip correction that scales the peak of the residual couple."""
+        """Returns the turn slip correction that scales the peak of the residual couple.
+
+        Parameters
+        ----------
+        VX
+        SA
+        SL
+        """
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -254,32 +249,32 @@ class TurnSlip:
         FZ0_prime = FZ0 * self.LFZO
 
         # peak factor
-        DRP = self.__find_drp(FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, R0=R0, FZ0_prime=FZ0_prime, angle_unit=angle_unit)
+        DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI, R0=R0, FZ0_prime=FZ0_prime)
 
         # final correction (4.92)
         zeta_8 = 1.0 + DRP
         return zeta_8
 
-    # NEEDS PHI
     def __find_drp(
             self,
             *,
+            SA:  SignalLike,
+            SL:  SignalLike,
             FZ:  SignalLike,
             P:   SignalLike,
             IA:  SignalLike,
-            VS:  SignalLike,
+            VX:  SignalLike,
             PHI: SignalLike,
             R0:  SignalLike,
-            FZ0_prime: NumberLike,
-            angle_unit: AngleUnit
+            FZ0_prime: NumberLike
     ) -> SignalLike:
         """Returns the ``DRP`` parameter used by ``zeta_7`` and ``zeta_8``."""
         
-        # normalize load
+        # _normalize load
         dfz = self.normalize._find_dfz(FZ)
 
         # lateral friction coefficient
-        mu_y = self.friction.find_mu_y(FZ=FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
+        mu_y = self.friction._find_mu_y(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
 
         # self aligning moment at vanishing wheel speed (4.95)
         MZP_inf = self.QCRP1 * mu_y * R0 * FZ * np.sqrt(FZ / FZ0_prime) * self.LMP
@@ -299,7 +294,7 @@ class TurnSlip:
         # stiffness factor
         # NOTE: the equation below is taken from the equation manual, which differs from the one in the book, shown
         # below: (4.98). Via Marco Furlan from MFeval
-        # BDRP = KZCRO / (CDRP * DDRP * (1.0 - eps_gamma) + self.eps_r)
+        # BDRP = KZCRO / (CDRP * DDRP * (1.0 - eps_gamma) + self._eps_r)
         BDRP = KZCRO / (CDRP * DDRP * (1.0 - eps_gamma))
 
         # peak factor 2

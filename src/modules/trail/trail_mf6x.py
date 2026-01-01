@@ -2,13 +2,13 @@ from src.utils.formatting import SignalLike, AngleUnit
 from typing import Literal
 import numpy as np
 
-class TrailMF61:
+class TrailMF6x:
     """
-    Pneumatic trail module for MF 6.1.
+    Pneumatic trail module for the MF 6.1 and MF 6.2 tyre models.
     """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # helper functions
@@ -28,13 +28,11 @@ class TrailMF61:
             *,
             SA:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VC:   SignalLike = None,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Finds the pneumatic trail of the tyre for pure slip conditions.
@@ -45,38 +43,26 @@ class TrailMF61:
             Slip angle.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VC : SignalLike, optional
-            Contact patch speed (will default to ``LONGVL`` if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
-        t : SignalLike
+        t0 : SignalLike
             Pneumatic trail.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VC  = self.LONGVL if VC is None else VC
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, FZ, P, IA, VC, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=0.0, VX=VX)
+        VCX = VX
 
         # turn slip correction
         if self._use_turn_slip:
@@ -92,9 +78,9 @@ class TrailMF61:
         BT, CT, DT, ET, alpha_t = self.__trail_main_routine(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, zeta_5=zeta_5)
 
         # pneumatic trail (4.E33)
-        t = DT * np.cos(CT * self.atan(BT * alpha_t - ET * (BT * alpha_t - self.atan(BT * alpha_t)))) * cos_prime_alpha
+        t0 = DT * np.cos(CT * self.atan(BT * alpha_t - ET * (BT * alpha_t - self.atan(BT * alpha_t)))) * cos_prime_alpha
 
-        return t
+        return t0
 
     def find_trail_combined(
             self,
@@ -102,13 +88,11 @@ class TrailMF61:
             SA:   SignalLike,
             SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VC:   SignalLike = None,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: Literal["rad", "deg"] = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Finds the pneumatic trail of the tyre for combined slip conditions.
@@ -121,20 +105,16 @@ class TrailMF61:
             Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VC : SignalLike, optional
-            Contact patch speed (will default to ``LONGVL`` if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -142,17 +122,9 @@ class TrailMF61:
             Pneumatic trail.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VC  = self.LONGVL if VC is None else VC
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, SL, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VC, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=SL, VX=VX)
+        VCX = VX
 
         # turn slip correction
         if self._use_turn_slip:
@@ -168,11 +140,11 @@ class TrailMF61:
         BT, CT, DT, ET, alpha_t = self.__trail_main_routine(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, zeta_5=zeta_5)
 
         # slip stiffness
-        KYA = self.gradient.find_cornering_stiffness(FZ=FZ)
-        KXK = self.gradient.find_slip_stiffness(FZ=FZ)
+        KYA = self.gradient._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, VX=VX)
+        KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
 
         # corrected cornering stiffness (4.E39)
-        KYA_prime = KYA + self.eps_kappa * np.sign(KYA)
+        KYA_prime = KYA + self._eps_kappa * np.sign(KYA)
 
         # corrected slip angle (A55)
         alpha_t_eq = self.atan(np.sqrt(self.tan(alpha_t) ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2)) * np.sign(alpha_t)
@@ -204,8 +176,7 @@ class TrailMF61:
             VS:     SignalLike,
             zeta_5: SignalLike,
     ) -> list[SignalLike]:
-        """
-        Function containing the main calculations for the pneumatic trail. To be used in ``find_trail`` and
+        """Function containing the main calculations for the pneumatic trail. To be used in ``find_trail`` and
         ``find_trail_pure``."""
 
         # unpack tyre properties
@@ -216,7 +187,7 @@ class TrailMF61:
         FZ0 = self.FNOMIN
         FZ0_prime = FZ0 * self.LFZO
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -225,7 +196,6 @@ class TrailMF61:
 
         # degressive friction factor (4.E8)
         LMUY_star  = self.correction._find_lmu_star(VS=VS, V0=V0, LMU=self.LMUY)
-        LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # stiffness factor (A58)
         BT = ((self.QBZ1 + self.QBZ2 * dfz + self.QBZ3 * dfz ** 2) * (1.0 + self.QBZ4 * IA + self.QBZ5 * np.abs(IA))
@@ -239,9 +209,6 @@ class TrailMF61:
         # shape factor (4.E41)
         CT = self.QCZ1
 
-        # static peak factor (4.E42) TODO find other uses of DT0
-        #DT0 = self.common._find_dt0(FZ=FZ, dfz=dfz, dpi=dpi, VCX=VCX, FZ0_prime=FZ0_prime, R0=R0)
-
         # peak factor(A60)
         DT = ((self.QDZ1 + self.QDZ2 * dfz) * (1.0 - self.PPZ1 * dpi) * (1.0 + self.QDZ3 * IA + self.QDZ4 * IA ** 2)
               * FZ * (R0 / FZ0_prime) * self.LTR * zeta_5)
@@ -249,6 +216,7 @@ class TrailMF61:
         # NOTE: equation above is taken from the paper instead of the book. Equation (4.E43) from the book (shown in a
         # comment below) does not match the TNO solver (via Marco Furlan):
         # DT = DT0 * (1.0 + self.QDZ3 * np.abs(gamma_star) + self.QDZ4 * gamma_star ** 2) * zeta_5
+        # DT0 can be found in the method _find_dt0() in CommonMF6x
 
         # horizontal shift (4.E35)
         S_HT = self.QHZ1 + self.QHZ2 * dfz + (self.QHZ3 + self.QHZ4 * dfz) * gamma_star
@@ -258,6 +226,7 @@ class TrailMF61:
         alpha_t = alpha_star + S_HT
 
         # curvature factor (4.E44)
-        ET = (self.QEZ1 + self.QEZ2 * dfz + self.QEZ3 * dfz ** 2) * (1.0 + (self.QEZ4 + self.QEZ5 * gamma_star) * np.pi / 2 * self.atan(BT * CT * alpha_t))
+        ET = (self.QEZ1 + self.QEZ2 * dfz + self.QEZ3 * dfz ** 2) * (1.0 + (self.QEZ4 + self.QEZ5 * gamma_star)
+                                                                     * np.pi / 2 * self.atan(BT * CT * alpha_t))
 
         return [BT, CT, DT, ET, alpha_t]

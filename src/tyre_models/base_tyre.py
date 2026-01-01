@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from typing import Union, Literal
-from src.utils.formatting import SignalLike
+from src.utils.formatting import SignalLike, AngleUnit
 
 class TyreBase:
     """
@@ -35,6 +35,7 @@ class TyreBase:
         self._use_mfeval_mode   = settings.get('use_mfeval_mode', False)
         self._check_format      = settings.get('check_format', True) # TODO: change name
         self._check_limits      = settings.get('check_limits', True)
+        self._use_model_type    = settings.get('use_model_type', None)
 
         # unpack parameter dictionary
         self._params_flat = {}
@@ -129,13 +130,14 @@ class TyreBase:
             SL: SignalLike = None,
             FZ: SignalLike = None,
             P:  SignalLike = None,
-            IA: SignalLike = None
-    ):
+            IA: SignalLike = None,
+            angle_unit: AngleUnit):
         """
         Checks if the input signals fall within the limits specified in the TIR file.
 
         Parameters
         ----------
+        angle_unit
         SA : SignalLike, optional
             Slip angle.
         SL : SignalLike, optional
@@ -148,6 +150,12 @@ class TyreBase:
             Inclination angle with respect to the ground plane.
         """
 
+        # TODO: add fix for possible complex number inputs
+        # TODO: add low speed limit
+        # TODO: add check that all signals are either length 1 or the same length
+        # TODO: limit input signals to values specified in TIR file
+
+        # main function for reformatting
         def main(sig_in, minval, maxval, sig_name: str):
             if sig_in is not None:
                 if not isinstance(sig_in, np.ndarray):
@@ -158,35 +166,29 @@ class TyreBase:
                 if any(sig_in < minval) or any(sig_in > maxval):
                     warnings.warn(f"{sig_name} exceeds specified limits.")
 
+        if angle_unit == "deg":
+            SA = np.deg2rad(SA)
+            IA = np.deg2rad(IA)
+
         # pressure check
-        try:
+        if P is not None:
             main(P, self.PRESMIN, self.PRESMAX, "Pressure")
-        except KeyError or TypeError:
-            pass
 
         # slip angle check
-        try:
+        if SA is not None:
             main(SA, self.ALPMIN, self.ALPMAX, "Slip angle")
-        except KeyError or TypeError:
-            pass
 
         # slip ratio check
-        try:
+        if SL is not None:
             main(SL, self.KPUMIN, self.KPUMAX, "Slip ratio")
-        except KeyError or TypeError:
-            pass
 
         # inclination angle check
-        try:
+        if IA is not None:
             main(IA, self.CAMMIN, self.CAMMAX, "Inclination angle")
-        except KeyError or TypeError:
-            pass
 
         # vertical load check
-        try:
+        if FZ is not None:
             main(FZ, self.FZMIN, self.FZMAX, "Vertical load")
-        except KeyError or TypeError:
-            pass
 
     @staticmethod
     def _format_check(sig_in: Union[SignalLike, list[SignalLike]]) -> SignalLike:
@@ -215,24 +217,30 @@ class TyreBase:
         if isinstance(sig_in, list):
             sig_out = len(sig_in) * [None]
             for i, signal in enumerate(sig_in):
-                if isinstance(signal, np.ndarray):
-                    if signal.ndim > 1:
-                        assert signal.shape[1] == 1, "Please input a 1D array."
-                        sig_out[i] = signal.flatten()
+                if signal is None:
+                    continue
+                else:
+                    if isinstance(signal, np.ndarray):
+                        if signal.ndim > 1:
+                            assert signal.shape[1] == 1, "Please input a 1D array."
+                            sig_out[i] = signal.flatten()
+                        else:
+                            sig_out[i] = signal
                     else:
                         sig_out[i] = signal
-                else:
-                    sig_out[i] = signal
 
         # if just a single channel is passed
         else:
-            if isinstance(sig_in, np.ndarray):
-                if sig_in.ndim > 1:
-                    assert sig_in.shape[1] == 1, "Please input a 1D array."
-                    sig_out = sig_in.flatten()
+            if sig_in is None:
+                sig_out = sig_in
+            else:
+                if isinstance(sig_in, np.ndarray):
+                    if sig_in.ndim > 1:
+                        assert sig_in.shape[1] == 1, "Please input a 1D array."
+                        sig_out = sig_in.flatten()
+                    else:
+                        sig_out = sig_in
                 else:
                     sig_out = sig_in
-            else:
-                sig_out = sig_in
 
         return sig_out

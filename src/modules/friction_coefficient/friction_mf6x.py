@@ -1,15 +1,15 @@
 from src.utils.formatting import SignalLike, AngleUnit
-from src.helpers.corrections import CorrectionsMF61
+from src.helpers.corrections_mf6x import CorrectionsMF6x
 from src.helpers.normalize import Normalize
 from typing import Literal
 
-class FrictionMF61:
+class FrictionMF6x:
     """
-    Friction coefficient module for MF 6.1.
+    Friction coefficient module for the MF 6.1 and MF 6.2 tyre models.
     """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model     = model
 
         # helper functions
@@ -20,29 +20,33 @@ class FrictionMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_mu_x(
+    def _find_mu_x(
             self,
             *,
+            SA: SignalLike,
+            SL: SignalLike,
             FZ: SignalLike,
             P:  SignalLike = None,
             IA: SignalLike = 0.0,
-            VS: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad") -> SignalLike:
+            VX: SignalLike = None
+    ) -> SignalLike:
         """
         Returns the longitudinal friction coefficient.
 
         Parameters
         ----------
+        SA : SignalLike
+            Slip angle.
+        SL : SignalLike
+            Slip ratio.
         FZ : SignalLike
             Vertical load.
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
-        angle_unit : str, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
 
         Returns
         -------
@@ -50,20 +54,13 @@ class FrictionMF61:
             Longitudinal friction coefficient.
         """
 
-        # set default values for optional arguments
-        P  = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P, IA, VS = self._format_check([FZ, P, IA, VS])
-
-        # correct angle if mismatched between input array and TIR file
-        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=SL, VX=VX)
 
         # unpack tyre properties
         V0 = self.LONGVL
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -76,30 +73,33 @@ class FrictionMF61:
 
         return mu_x
 
-    def find_mu_y(
+    def _find_mu_y(
             self,
             *,
+            SA: SignalLike,
+            SL: SignalLike,
             FZ: SignalLike,
             P:  SignalLike = None,
             IA: SignalLike = 0.0,
-            VS: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX: SignalLike = None
     ) -> SignalLike:
         """
         Returns the lateral friction coefficient.
 
         Parameters
         ----------
+        SA : SignalLike
+            Slip angle.
+        SL : SignalLike
+            Slip ratio.
         FZ : SignalLike
             Vertical load.
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
-        angle_unit : str, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
 
         Returns
         -------
@@ -107,20 +107,13 @@ class FrictionMF61:
             Lateral friction coefficient.
         """
 
-        # set default values for optional arguments
-        P  = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P, IA, VS = self._format_check([FZ, P, IA, VS])
-
-        # correct angle if mismatched between input array and TIR file
-        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=SL, VX=VX)
 
         # unpack tyre properties
         V0 = self.LONGVL
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 

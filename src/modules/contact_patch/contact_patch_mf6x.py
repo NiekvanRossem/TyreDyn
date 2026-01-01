@@ -1,13 +1,13 @@
 from src.utils.formatting import SignalLike
 import numpy as np
 
-class ContactPatchMF61:
+class ContactPatchMF6x:
     """
-    Contact patch module for MF 6.1.
+    Contact patch module for the MF 6.1 and MF 6.2 tyre models.
     """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # other modules
@@ -17,11 +17,11 @@ class ContactPatchMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_contact_patch(
+    def _find_contact_patch(
             self,
             *,
             FZ: SignalLike,
-            P: SignalLike = None
+            P:  SignalLike = None
     ) -> list[SignalLike]:
         """
         Finds the contact patch dimensions.
@@ -29,7 +29,7 @@ class ContactPatchMF61:
         Parameters
         ----------
         FZ : SignalLike
-            Vertical load
+            Vertical load.
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
 
@@ -39,19 +39,12 @@ class ContactPatchMF61:
             Contact patch length and width.
         """
 
-        # set default values for optional arguments
-        P = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ = self._format_check(FZ)
-
         # unpack tyre parameters
         R0 = self.UNLOADED_RADIUS
         W  = self.WIDTH
 
         # vertical stiffness
-        CZ = self.stiffness.find_vertical_stiffness(P)
+        CZ = self.stiffness._find_vertical_stiffness(P)
 
         # length (A3.7)
         a = R0 * (self.Q_RA2 * FZ / (CZ * R0) + self.Q_RA1 * np.sqrt(FZ / (CZ * R0)))

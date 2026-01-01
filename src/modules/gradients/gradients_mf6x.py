@@ -2,13 +2,14 @@ from src.utils.formatting import SignalLike, AngleUnit
 import numpy as np
 from typing import Literal
 
-class GradientsMF61:
+class GradientsMF6x:
     """
-    Module containing the gradient functions such as cornering stiffness or camber stiffness for MF 6.1.
+    Module containing the gradient functions such as cornering stiffness or camber stiffness for the MF 6.1 and MF 6.2
+    tyre models.
     """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # helper functions
@@ -23,30 +24,39 @@ class GradientsMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_cornering_stiffness(
+    def _find_cornering_stiffness(
             self,
             *,
+            SA:   SignalLike,
+            SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the gradient of the side force to slip angle, at zero slip.
 
         Parameters
         ----------
+        SA : SignalLike
+            Slip angle.
+        SL : SignalLike
+            Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
-        IA: SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
+        IA : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : str, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -54,18 +64,11 @@ class GradientsMF61:
             Cornering stiffness at zero slip angle.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=SL, VX=VX)
 
         # unpack tyre properties
         FZ0 = self.FNOMIN
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P, IA, PHIT = self._format_check([FZ, P, IA, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
@@ -77,7 +80,7 @@ class GradientsMF61:
         # corrected camber angle
         gamma_star = self.correction._find_gamma_star(IA)
 
-        # normalize pressure
+        # _normalize pressure
         dpi = self.normalize._find_dpi(P)
 
         # scaled nominal load
@@ -89,11 +92,11 @@ class GradientsMF61:
                                              * (1.0 + self.PPY2 * dpi)))) * zeta_3 * self.LKY
         return KYA
 
-    def find_slip_stiffness(
+    def _find_slip_stiffness(
             self,
             *,
             FZ: SignalLike,
-            P:  SignalLike = None
+            P:  SignalLike = None,
     ) -> SignalLike:
         """
         Returns the gradient of the longitudinal force to longitudinal slip, at zero slip ratio.
@@ -111,14 +114,7 @@ class GradientsMF61:
             Slip stiffness at zero slip.
         """
 
-        # set default values for optional arguments
-        P = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P = self._format_check([FZ, P])
-
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -127,7 +123,7 @@ class GradientsMF61:
                * (1.0 + self.PPX1 * dpi + self.PPX2 * dpi ** 2) * self.LKX)
         return KXK
 
-    def find_camber_stiffness(
+    def _find_camber_stiffness(
             self,
             *,
             FZ: SignalLike,
@@ -149,14 +145,7 @@ class GradientsMF61:
             Camber stiffness at zero inclination angle.
         """
 
-        # set default values for optional arguments
-        P = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P = self._format_check([FZ, P])
-
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -164,15 +153,15 @@ class GradientsMF61:
         KYCO = FZ * (self.PKY6 + self.PKY7 * dfz) * (1.0 - self.PPY5 * dpi) * self.LKYC
         return KYCO
 
-    def find_aligning_stiffness(
+    def _find_aligning_stiffness(
             self,
             *,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VCX:  SignalLike = None,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the gradient of self-aligning couple to slip angle, at zero slip.
@@ -181,16 +170,16 @@ class GradientsMF61:
         ----------
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : str, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -198,9 +187,8 @@ class GradientsMF61:
             Self-aligning couple stiffness to slip angle.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VCX = self.LONGVL if VCX is None else VCX
+        # find other velocity components
+        VCX = VX
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -209,12 +197,12 @@ class GradientsMF61:
         FZ0 = self.FNOMIN
         FZ0_prime = FZ0 * self.LFZO
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
         # cornering stiffness
-        KYA = self.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
+        KYA = self._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # static trail peak factor
         D_T0 = self.common._find_dt0(FZ=FZ, dfz=dfz, dpi=dpi, VCX=VCX, FZ0_prime=FZ0_prime, R0=R0)
@@ -224,13 +212,12 @@ class GradientsMF61:
         KZAO = D_T0 * KYA
         return KZAO
 
-    def find_camber_aligning_stiffness(
+    def _find_camber_aligning_stiffness(
             self,
             *,
             FZ:  SignalLike,
             P:   SignalLike = None,
-            VCX: SignalLike = None,
-            VS:  SignalLike = 0.0
+            VX:  SignalLike = None
     ) -> SignalLike:
         """
         Returns the gradient of the self-aligning couple to camber angle, at zero camber.
@@ -241,10 +228,8 @@ class GradientsMF61:
             Vertical load.
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
-        VCX : SignalLike, optional
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Contact patch slip speed (will default to zero if not specified).
 
         Returns
         -------
@@ -252,15 +237,15 @@ class GradientsMF61:
             Self-aligning couple stiffness to camber angle.
         """
 
-        # set default values for optional parameters
-        P   = self.INFLPRES if P is None else P
-        VCX = self.LONGVL if VCX is None else VCX
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=SL, VX=VX)
+        VCX = VX
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
         V0 = self.LONGVL
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -271,13 +256,14 @@ class GradientsMF61:
         D_T0 = self.common._find_dt0(FZ=FZ, dfz=dfz, dpi=dpi, VCX=VCX, FZ0_prime=FZ0_prime, R0=R0)
 
         # camber stiffness to slip angle at zero slip
-        KYCO = self.find_camber_stiffness(FZ=FZ, P=P)
+        KYCO = self._find_camber_stiffness(FZ=FZ, P=P)
 
         # camber stiffness to self aligning couple (4.E49)
         # NOTE: not used generally, but added for completeness
         KZCO = FZ * R0 * (self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) * self.LKZC * LMUY_star - D_T0 * KYCO
         return KZCO
 
+    # TODO: find better method for the functions below
     @staticmethod
     def find_instant_kya(
             *,
@@ -290,7 +276,6 @@ class GradientsMF61:
 
         Parameters
         ----------
-        *
         SA : SignalLike
             Slip angle.
         FY : SignalLike
@@ -318,7 +303,6 @@ class GradientsMF61:
 
         Parameters
         ----------
-        *
         SL : SignalLike
             Slip ratio.
         FX : SignalLike

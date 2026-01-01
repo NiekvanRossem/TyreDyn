@@ -149,31 +149,107 @@ class Tyre:
         TIRValidation.validate_with_model(params)
 
 #----------------------------------------------------------------------------------------------------------------------#
-# quick test script
 
+# test script
 if __name__ == "__main__":
+
+    from src.initialize_tyre import Tyre
+    import numpy as np
+
     # initialize tyre
     tyre = Tyre(
         'car205_60R19.tir',
+        use_model_type  = "MF61",
         validate        = True,
-        use_model_type  = "MF62",
         use_alpha_star  = True,
         use_gamma_star  = True,
         use_lmu_star    = True,
-        use_turn_slip   = False,
+        use_turn_slip   = True,
         check_format    = True,
         check_limits    = True,
         use_mfeval_mode = False
     )
 
-    FZ = 600
-    SL = 0.1
+    # input state
+    SA   = 16.5
+    SL   = 0.54
+    FZ   = 4500
+    P    = 1.8e5
+    IA   = -3.5
+    VX   = 200 / 3.6
+    PHIT = 0.04
 
-    FX = tyre.forces.find_fx_pure(SL=SL, FZ=FZ, VC=VC)
+    [FX, FY, FZ,
+     MX, MY, MZ,
+     SL, SA, IA, PHIT, VX, P, N,
+     R_omega, RE, rho, RL,
+     a, b, t,
+     mu_x, mu_y,
+     MZR,
+     Cx, Cy, Cz,
+     KYA, iKYA, KXK, iKXK,
+     sigma_x, sigma_y] = tyre.find_full_output(SA=SA, SL=SL, FZ=FZ, VX=VX, P=P, IA=IA, PHIT=PHIT, angle_unit="deg")
 
-    #RL = tyre.find_loaded_radius(FX, 0.0, FZ, 20.0)
-    print(f"=== TEST OUTPUT === \n"
-          f"vertical load:  {FZ} N \n"
-          f"slip ratio:     {SL} \n"
-          f"tractive force: {FX:.2f} N \n")
-          #f"loaded_radius:  {RL:.2f} m")
+    # planar force
+    FH = np.sqrt(FX ** 2 + FY ** 2)
+    mu_ix = np.abs(FX / FZ)
+    mu_iy = np.abs(FY / FZ)
+    mu_i  = np.abs(FH / FZ)
+
+    def rads2rpm(input):
+        return input * 60.0 / (2.0 * np.pi)
+
+    print("=== FULL STATE OUTPUT ===")
+    print("Input state")
+    print(f"  Slip angle:           {np.rad2deg(SA):.1f} deg")
+    print(f"  Slip ratio:           {SL:.2f}")
+    print(f"  Inclination angle:    {np.rad2deg(IA):.1f} deg")
+    print(f"  Tyre pressure:        {1e-5 * P:.2f} bar")
+    print(f"  Turn slip:            {PHIT:.2f} /m")
+
+    print("Speed")
+    print(f"  Longitudinal:         {3.6 * VX:.1f} km/h")
+    print(f"  Angular:              {rads2rpm(N):.1f} rpm")
+
+    print("Forces")
+    print(f"  Longitudinal:         {FX:.1f} N")
+    print(f"  Lateral:              {-FY:.1f} N")
+    print(f"  Planar:               {FH:.1f} N")
+    print(f"  Vertical:             {FZ:.1f} N")
+
+    print("Moments")
+    print(f"  Overturning:          {MX:.1f} Nm")
+    print(f"  Rolling resistance:   {MY:.1f} Nm")
+    print(f"  Self-aligning:        {MZ:.1f} Nm")
+    print(f"  Residual MZ:          {MZR:.1f} Nm")
+
+    print("Gradients")
+    print(f"  Cornering stiffness:  {-np.deg2rad(KYA):.1f} N/deg")
+    print(f"  Slip stiffness:       {1e-2 * KXK:.1f} N/0.01slip")
+
+    print(f"Friction coefficients")
+    print(f"  Longitudinal (inst):  {mu_ix:.3f}")
+    print(f"  Longitudinal:         {mu_x:.3f}")
+    print(f"  Lateral (inst):       {mu_iy:.3f}")
+    print(f"  Lateral:              {mu_y:.3f}")
+    print(f"  Planar (inst):        {mu_i:.3f}")
+
+    print("Relaxation lengths")
+    print(f"  Longitudinal:         {1e3 * sigma_x:.1f} mm")
+    print(f"  Lateral:              {-1e3 * sigma_y:.1f} mm")
+
+    print("Radii and deflection")
+    print(f"  Free radius:          {1e3 * R_omega:.1f} mm")
+    print(f"  Loaded radius:        {1e3 * RL:.1f} mm")
+    print(f"  Effective radius:     {1e3 * RE:.1f} mm")
+    print(f"  Vertical deflection:  {1e3 * rho:.1f} mm")
+
+    print("Stiffness")
+    print(f"  Longitudinal:         {1e-3 * Cx:.1f} N/mm")
+    print(f"  Lateral:              {1e-3 * Cy:.1f} N/mm")
+    print(f"  Vertical:             {1e-3 * Cz:.1f} N/mm")
+
+    print("Contact patch dimensions")
+    print(f"  Length:               {1e3 * a:.1f} mm")
+    print(f"  Width:                {1e3 * b:.1f} mm")
+    print(f"  Pneumatic trail:      {1e3 * t:.1f} mm")

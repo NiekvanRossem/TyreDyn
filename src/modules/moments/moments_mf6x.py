@@ -2,13 +2,13 @@ from src.utils.formatting import SignalLike, AngleUnit
 from typing import Literal
 import numpy as np
 
-class MomentsMF61:
+class MomentsMF6x:
     """
-    Moments module for MF 6.1.
+    Moments module for the MF 6.1 and MF 6.2 tyre models.
     """
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other modules available."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # helper functions
@@ -30,17 +30,16 @@ class MomentsMF61:
     # ------------------------------------------------------------------------------------------------------------------#
     # PURE SLIP MOMENTS
 
-    def find_mx_pure(
+    def _find_mx_pure(
             self,
             *,
             SA:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the overturning couple for pure slip conditions.
@@ -51,18 +50,16 @@ class MomentsMF61:
             Slip angle.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -70,41 +67,27 @@ class MomentsMF61:
             Overturning couple for pure slip conditions.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, FZ, P, IA, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
-
         # find side force
-        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        FY0 = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # find overturning moment
-        MX = self.__mx_main_routine(FY=FY, FZ=FZ, P=P, IA=IA)
+        MX = self.__mx_main_routine(FY=FY0, FZ=FZ, P=P, IA=IA)
         return MX
 
-    def find_my_pure(
+    def _find_my_pure(
             self,
             *,
             SL:  SignalLike,
             FZ:  SignalLike,
             P:   SignalLike = None,
             IA:  SignalLike = 0.0,
-            VC:  SignalLike = None,
-            VCX: SignalLike = None,
-            angle_unit: AngleUnit = "rad"
+            VX:  SignalLike = None
     ) -> SignalLike:
         """
         Returns the rolling resistance couple for pure slip conditions.
 
         Parameters
         ----------
-        VC
         SL : SignalLike
             Slip ratio.
         FZ : SignalLike
@@ -112,11 +95,9 @@ class MomentsMF61:
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
 
         Returns
         -------
@@ -124,37 +105,26 @@ class MomentsMF61:
             Rolling resistance couple for pure slip conditions.
         """
 
-        # set default values for optional arguments
-        P  = self.INFLPRES if P is None else P
-        VC = self.LONGVL if VC is None else VC
-        VCX = self.LONGVL if VCX is None else VCX
+        # find other velocity components
+        VCX = VX
 
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SL, FZ, P, IA, VCX = self._format_check([SL, FZ, P, IA, VCX])
-
-        # correct angle if mismatched between input array and TIR file
-        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
-
-        # calculate FX
-        FX = self.forces.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VS=VS, PHIT=PHI, angle_unit=angle_unit)
+        # calculate FX0
+        FX0 = self.forces._find_fx_pure(SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHI)
 
         # find rolling resistance moment
-        MY = self.__my_main_routine(FX=FX, FZ=FZ, P=P, IA=IA, VCX=VCX)
+        MY = self.__my_main_routine(FX=FX0, FZ=FZ, P=P, IA=IA, VCX=VCX)
         return MY
 
-    def find_mz_pure(
+    def _find_mz_pure(
             self,
             *,
             SA:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VC:   SignalLike = None,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the self-aligning couple for pure slip conditions.
@@ -165,20 +135,16 @@ class MomentsMF61:
             Slip angle.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VC : SignalLike, optional
-            Contact patch speed (will default to ``LONGVL`` if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -186,27 +152,19 @@ class MomentsMF61:
             Self-aligning couple for pure slip conditions.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VC  = self.LONGVL if VC is None else VC
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, FZ, P, IA, VC, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=0.0, VX=VX)
+        VCX = VX
 
         # turn slip correction
         if self._use_turn_slip:
             PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0  # (4.83)
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2, angle_unit=angle_unit)
+            zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2)
             zeta_6 = self.turn_slip._find_zeta_6(PHI)
-            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
-            zeta_8 = self.turn_slip._find_zeta_8(FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
+            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
+            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI)
         else:
             zeta_0 = self.zeta_default
             zeta_2 = self.zeta_default
@@ -216,15 +174,15 @@ class MomentsMF61:
             zeta_8 = self.zeta_default
 
         # pneumatic trail
-        t = self.trail.find_trail_pure(SA=SA, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        t = self.trail.find_trail_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # find side force
-        FY = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        FY = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # residual self-aligning couple (4.E36)
-        MZR = self._mz_main_routine(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, zeta_0=zeta_0,
+        MZR = self._mz_main_routine(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, VC=VC, VCX=VCX, VS=VS, N=N, zeta_0=zeta_0,
                                     zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7, zeta_8=zeta_8,
-                                    combined_slip=False, angle_unit=angle_unit)
+                                    combined_slip=False)
 
         # self-aligning couple due to pneumatic trail (4.E32)
         MZ_prime = - t * FY
@@ -237,18 +195,17 @@ class MomentsMF61:
     # ------------------------------------------------------------------------------------------------------------------#
     # COMBINED SLIP MOMENTS
 
-    def find_mx_combined(
+    def _find_mx_combined(
             self,
             *,
             SA:   SignalLike,
             SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the overturning couple for combined slip conditions.
@@ -261,18 +218,16 @@ class MomentsMF61:
             Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -280,38 +235,24 @@ class MomentsMF61:
             Overturning couple for combined slip conditions.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
-
         # find side force
-        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT,
-                                          angle_unit=angle_unit)
+        FY = self.forces._find_fy_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # find overturning couple
         MX = self.__mx_main_routine(FY=FY, FZ=FZ, P=P, IA=IA)
         return MX
 
-    def find_my_combined(
+    def _find_my_combined(
             self,
             *,
             SA:   SignalLike,
             SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VC:   SignalLike = None,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the rolling resistance couple for combined slip conditions.
@@ -324,20 +265,16 @@ class MomentsMF61:
             Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VC : SignalLike, optional
-            Contact patch speed (will default to ``LONGVL`` if not specified).
-        VCX : SignalLike, optional
-            Wheel center longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Contact patch slip speed (will default to zero if not specified).
-        PHIT: SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
+        PHIT : SignalLike, optional
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -345,40 +282,27 @@ class MomentsMF61:
             Rolling resistance couple for combined slip conditions.
         """
 
-        # set default values for optional arguments
-        # NOTE: it is assumed that difference between contact patch and wheel center speed is negligible as (eqn 7.4
-        # from Pacejka)
-        P   = self.INFLPRES if P is None else P
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+        # find other velocity components
+        VCX = VX
 
         # calculate FX
-        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT,
-                                          angle_unit=angle_unit)
+        FX = self.forces._find_fx_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # find rolling resistance moment
         MY = self.__my_main_routine(FX=FX, FZ=FZ, P=P, IA=IA, VCX=VCX)
         return MY
 
-    def find_mz_combined(
+    def _find_mz_combined(
             self,
             *,
             SA:   SignalLike,
             SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VC:   SignalLike = None,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the self-aligning couple for combined slip conditions.
@@ -391,20 +315,16 @@ class MomentsMF61:
             Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VC : SignalLike, optional
-            Contact patch speed (will default to ``LONGVL`` if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Contact patch slip speed (will default to ``LONGVL`` if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -412,31 +332,24 @@ class MomentsMF61:
             Self-aligning couple for combined slip conditions.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VC  = self.LONGVL if VC is None else VC
-        VCX = self.LONGVL if VCX is None else VCX
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=SL, VX=VX)
+        VCX = VX
 
         # unpack tyre properties
         R0  = self.UNLOADED_RADIUS
         FZ0 = self.FNOMIN
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, SL, FZ, P, IA, VC, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VC, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
 
         # turn slip correction
         if self._use_turn_slip:
             PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHIT)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2, angle_unit=angle_unit)
+            zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
+                                                 zeta_2=zeta_2)
             zeta_6 = self.turn_slip._find_zeta_6(PHIT)
-            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, angle_unit=angle_unit)
-            zeta_8 = self.turn_slip._find_zeta_8(FZ=FZ, P=P, IA=IA, VS=VS, PHI=PHI, angle_unit=angle_unit)
+            zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
+            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI)
         else:
             zeta_0 = self.zeta_default
             zeta_2 = self.zeta_default
@@ -445,32 +358,25 @@ class MomentsMF61:
             zeta_7 = self.zeta_default
             zeta_8 = self.zeta_default
 
-        # scaled nominal loads
-        #FZ0_prime = FZ0 * self.LFZO
-
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
 
-        # corrected camber angle
-        #gamma_star = self.correction._find_gamma_star(IA)
-
         # tyre forces
-        FX = self.forces.find_fx_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
-        FY = self.forces.find_fy_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        FX = self.forces._find_fx_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
+        FY = self.forces._find_fy_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # combined slip scaling factor for side force
+        # NOTE: in the equation below inclination angle is taken into account to match the TNO solver (via Marco Furlan).
         GYK = self.common._find_gyk(SA=SA, SL=SL, FZ=FZ, IA=IA, VCX=VCX)
 
-        # NOTE: in the equation above inclination angle is taken into account to match the TNO solver (via Marco Furlan).
-
         # pure slip side force without camber or turn slip
-        FY0 = self.forces.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=0.0, VCX=VCX, VS=VS, PHIT=0.0, angle_unit=angle_unit)
+        FY0 = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=0.0, VX=VX, PHIT=0.0)
 
         # combined slip side force (4.E74)
         FY_prime = FY0 * GYK
 
         # pneumatic trail
-        t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # pneumatic scrub (A56)
         s = R0 * (self.SSZ1 + self.SSZ2 * (FY / FZ0) + (self.SSZ3 + self.SSZ4 * dfz) * IA) * self.LS
@@ -484,9 +390,9 @@ class MomentsMF61:
         MZ_prime = -t * FY_prime
 
         # residual self-aligning couple
-        MZR = self._mz_main_routine(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VCX=VCX, VS=VS, zeta_0=zeta_0,
+        MZR = self._mz_main_routine(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VC=VC, VCX=VCX, VS=VS, N=N, zeta_0=zeta_0,
                                     zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7, zeta_8=zeta_8,
-                                    combined_slip=True, angle_unit=angle_unit)
+                                    combined_slip=True)
 
         # final self-aligning couple (4.E71)
         MZ = MZ_prime + MZR + s * FX
@@ -509,7 +415,7 @@ class MomentsMF61:
         R0  = self.UNLOADED_RADIUS
         FZ0 = self.FNOMIN
 
-        # normalize pressure
+        # _normalize pressure
         dpi = self.normalize._find_dpi(P)
 
         # define overturning couple parameter sets
@@ -517,7 +423,6 @@ class MomentsMF61:
                 self.QSX7, self.QSX8, self.QSX9, self.QSX10, self.QSX11]
         set2 = [self.QSX12, self.QSX13, self.QSX14]
 
-        # TODO: check if the book equation is for MF 6.1 specifically. In that case split them up.
         # NOTE: the equation manual for MF 6.2 states that the equation for the overturning couple needs to be split up
         # into two parts: the first using the parameters QSX1 to QSX11, and the second using QSX12 to QSX14. The first
         # set is the general formulation, and the second set is an alternative formulation mainly used for motorcycle
@@ -591,17 +496,18 @@ class MomentsMF61:
             FZ:     SignalLike,
             P:      SignalLike,
             IA:     SignalLike,
+            VX:     SignalLike,
             VC:     SignalLike,
             VCX:    SignalLike,
             VS:     SignalLike,
+            N:      SignalLike,
             zeta_0: SignalLike,
             zeta_2: SignalLike,
             zeta_4: SignalLike,
             zeta_6: SignalLike,
             zeta_7: SignalLike,
             zeta_8: SignalLike,
-            combined_slip: bool = False,
-            angle_unit: AngleUnit = "rad"
+            combined_slip: bool = False
     ) -> SignalLike:
         """Function containing the main ``MZ`` calculation routine. Used in ``find_mz`` and ``find_mz_pure``."""
 
@@ -609,7 +515,7 @@ class MomentsMF61:
         R0 = self.UNLOADED_RADIUS
         V0 = self.LONGVL
 
-        # normalize pressure and load
+        # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
         dpi = self.normalize._find_dpi(P)
 
@@ -621,11 +527,11 @@ class MomentsMF61:
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # cornering and camber stiffness
-        KYA  = self.gradient.find_cornering_stiffness(FZ=FZ)
-        KYCO = self.gradient.find_camber_stiffness(FZ=FZ)
+        KYA  = self.gradient._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, VX=VX)
+        KYCO = self.gradient._find_camber_stiffness(FZ=FZ, P=P)
 
         # corrected cornering stiffness (4.E39)
-        KYA_prime = KYA + self.eps_kappa * np.sign(KYA)
+        KYA_prime = KYA + self._eps_kappa * np.sign(KYA)
 
         # vertical shift for side force (4.E29)
         S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime, zeta_2=zeta_2)
@@ -644,7 +550,7 @@ class MomentsMF61:
         if combined_slip:
 
             # slip stiffness
-            KXK = self.gradient.find_slip_stiffness(FZ=FZ)
+            KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
 
             # corrected slip angle (A54)
             alpha_r_eq = self.atan(np.sqrt(self.tan(alpha_r) ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2)) * np.sign(alpha_r)
@@ -661,7 +567,7 @@ class MomentsMF61:
         LMUY_star = self.correction._find_lmu_star(VS=VS, V0=V0, LMU=self.LMUY)
 
         # friction coefficient (4.E23)
-        mu_y = self.friction.find_mu_y(FZ=FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
+        mu_y = self.friction._find_mu_y(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
 
         # peak factor (4.E22)
         DY = self.common._find_dy(mu_y=mu_y, FZ=FZ, zeta_2=zeta_2)
