@@ -1,0 +1,104 @@
+Metadata-Version: 2.4
+Name: TyreDyn
+Version: 0.1.1.dev3+g59eed8f3f.d20260108
+Summary: Open source tyre modelling library for Python
+Author: Niek_van_Rossem
+License-Expression: MIT
+Project-URL: Repository, https://github.com/NiekvanRossem/TyreDyn
+Keywords: Magic Formula,Pacejka,Tyre model,Vehicle Dynamics,Automotive
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 1 - Alpha
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.21.0
+Dynamic: license-file
+
+# TyreDyn
+TyreDyn is an open source tyre modelling package for Python. The aim is to provide a standard python interface for the 
+various tyre models in existence, similar to what [MFeval](https://mfeval.wordpress.com/) is in MATLAB. The code is 
+open-source and licenced under an MIT licence, and can thus be used freely in both personal and professional 
+applications.
+
+This is a personal project, and is not associated with any company or organisation I am or have been a part of.
+
+If you find any mistakes, would like to contribute, please contact me on:
+- [LinkedIn](https://www.linkedin.com/in/niek-van-rossem/)
+
+#### Currently supported tyre models
+- MF 6.1
+- MF 6.2
+
+#### Planned future support
+- PAC89
+- PAC94
+- PAC96
+- PAC2002
+- MF 5.2
+
+## How to use
+Load in your TIR file by calling `current_tyre = Tyre(<filename>.tir)`. This will create an instance of the tyre model 
+class corresponding to the `FITTYP` parameter.
+
+Some optional arguments can be passed as well. An overview is provided below:
+1. `use_model_type` -- Overrides the `FITTYP` parameter in the TIR file. Compatibility is limited to MF 5.0 ~ MF 6.2. 
+   Valid inputs should have one of the following formats: `52`, `MF52`, `MF5.2`, or `MF 5.2` (default is `None`).
+2. `validate` -- If set to `True`, the TIR file will be validated after loading in. This checks if all used parameters 
+   are present and of the right data type (default is `True`).
+3. `use_alpha_star` -- Adds a correction to the slip angle signal for large angles and reverse running (default is `True`). 
+4. `use_gamma_star` -- 
+5. `use_lmu_star` -- 
+6. `use_turn_slip` -- Adds turn-slip correction (default is `False`).
+7. `check_format` -- Checks the format of the input signals: All have to be 1D arrays or lists, and either have the same 
+   length or be of type `float`/`int` (default is `True`).
+8. `check_limits` -- Checks if inputs are within the range specified in the TIR file, and clips them if not (default is 
+   `True`).
+9. `use_mfeval_mode` -- Compatibility mode with MFeval. If set to `True`, the output list of `find_full_state` matches 
+   that of MFeval, if set to `False`, the outputs are organised on parameter type (default is `False`).
+
+#### Dependencies:
+1. NumPy
+2. Pydantic (TIR validation only)
+3. Matplotlib (example notebooks only)
+
+## Current status
+This package is currently a work in progress. The current status (as of 1 January 2026) is:
+- MF 6.1 and MF 6.2 are implemented and functional
+- Still needs detailed testing to check whether `TyreDyn`, `MFeval`, and `MF-Tool` give the same outputs.
+- A lot of work related to making this a proper python library need to be done as well. Think version management, etc.
+
+## Contributors
+- Niek van Rossem
+
+## Statement on AI use
+I used this project to explore how AI could be best be used as a coding assistant. The goal was not to outsource my 
+thinking to an LLM, or to have it otherwise create the project instead of me. Instead, it was used as an assistant and 
+teacher, providing me with various choices regarding implementation, and showing the trade-offs between them. More 
+specifically, ChatGPT-5 was used to provide advice on project architecture related decisions (think folder structure, 
+OOP specific implementation choices, et cetera). It was also used to write simple utility functions, like extracting 
+data from a file, or creating visualizations. Implementing the equations of the various tyre models was done without the 
+help of AI.
+
+All code written by ChatGPT is clearly marked as such in the docstring, and as been properly tested before 
+implementation. Code written by other people is also marked as such in the docstring. Unmarked code is written by me.
+
+## References
+1. Pacejka, H.B. & Besselink, I. (2012). *Tire and Vehicle Dynamics. Third Edition*. Elsevier.
+   [doi: 10.1016/c2010-0-68548-8](https://doi.org/10.1016/c2010-0-68548-8)
+2. Besselink, I.J.M. & Schmeitz, A.J.C. & Pacejka, H.B. (2010). *An improved Magic Formula/Swift tyre model that can 
+   handle inflation pressure changes*. Vehicle System Dynamics, 48(sup1), 337–352.
+   [doi: 10.1080/00423111003748088](https://doi-org.tudelft.idm.oclc.org/10.1080/00423111003748088)
+3. Besselink, I.J.M. & Schmeitz, A.J.C. & Pacejka, H.B. (2010). *An improved Magic Formula/Swift tyre model that can 
+   handle inflation pressure changes* **\[Unpublished manuscript]**. Retrieved 30 December 2025. 
+   [https://pure.tue.nl/ws/files/3139488/677330157969510.pdf](https://pure.tue.nl/ws/files/3139488/677330157969510.pdf)
+4. Marco Furlan (2025). *MFeval*. MATLAB Central File Exchange. Retrieved December 18, 2025.
+   [mathworks.com/matlabcentral/fileexchange/63618-mfeval](mathworks.com/matlabcentral/fileexchange/63618-mfeval)
+3. Netherlands Organization for Applied Scientific Research (2013). *MF-Tyre/MF-Swift 6.2 -- Equation manual*.
+   Document revision 20130706.
+4. International Organization for Standardization (2011). *Road vehicles -- Vehicle dynamics and road-holding
+   ability -- Vocabulary* (ISO standard No. 8855:2011)
+   [iso.org/obp/ui/#iso:std:iso:8855:ed-2:v1:en](https://www.iso.org/obp/ui/#iso:std:iso:8855:ed-2:v1:en)
+5. LeMesurier, B. & Roberts, S. (2025). *Numerical Methods and Analysis with Python*. College of Charleston. Retrieved 
+   28 December 2025.
+   [https://lemesurierb.people.charleston.edu/numerical-methods-and-analysis-python/index.html](https://lemesurierb.people.charleston.edu/numerical-methods-and-analysis-python/index.html)

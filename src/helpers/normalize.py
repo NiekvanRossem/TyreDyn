@@ -1,4 +1,4 @@
-from src.utils.formatting import SignalLike
+from src.utils.formatting import SignalLike, NumberLike
 from typing import Union, Literal
 import numpy as np
 

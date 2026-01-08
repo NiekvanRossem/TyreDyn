@@ -178,7 +178,10 @@ if __name__ == "__main__":
     from src.initialize_tyre import Tyre
     import numpy as np
 
-    filepath = Path(r'C:\Users\niekv\Documents\5. Personal engineering scripts\TyreDyn\example_tyres\MF62\car205_60R19_MF62.tir')
+    #from TyreDyn import __version__
+    #print(__version__)
+
+    filepath = Path(r'C:\Users\niekv\Documents\5. Personal engineering scripts\TyreDyn\example_tyres\MF62\car205_60R19.tir')
 
     # initialize tyre
     tyre = Tyre(
