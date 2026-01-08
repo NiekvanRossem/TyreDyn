@@ -2,13 +2,13 @@ from src.utils.formatting import SignalLike, AngleUnit
 from typing import Literal
 import numpy as np
 
-class RelaxationMF61:
+class RelaxationMF6x:
     """
-    Relaxation length module for MF 6.1.
+    Relaxation length module for the MF 6.1 and MF 6.2 tyre models.
     """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # other modules
@@ -19,30 +19,39 @@ class RelaxationMF61:
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
-    def find_lateral_relaxation(
+    def _find_lateral_relaxation(
             self,
             *,
+            SA:   SignalLike,
+            SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the lateral relaxation length.
 
         Parameters
         ----------
+        SA : SignalLike
+            Slip angle.
+        SL : SignalLike
+            Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : str, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -50,27 +59,17 @@ class RelaxationMF61:
             Lateral relaxation length.
         """
 
-        # set default values for optional arguments
-        P = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            FZ, P, IA, PHIT = self._format_check([FZ, P, IA, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
-
         # cornering stiffness
-        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
+        KYA = self.gradient._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # lateral stiffness
-        Cy = self.stiffness.find_lateral_stiffness(FZ=FZ, P=P)
+        Cy = self.stiffness._find_lateral_stiffness(FZ=FZ, P=P)
 
         # lateral relaxation length (A3.9)
         sigma_y = KYA / Cy
         return sigma_y
 
-    def find_longitudinal_relaxation(
+    def _find_longitudinal_relaxation(
             self,
             *,
             FZ: SignalLike,
@@ -100,10 +99,10 @@ class RelaxationMF61:
             FZ, P = self._format_check([FZ, P])
 
         # slip stiffness
-        KXK = self.gradient.find_slip_stiffness(FZ=FZ, P=P)
+        KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
 
         # longitudinal stiffness
-        Cx = self.stiffness.find_longitudinal_stiffness(FZ=FZ, P=P)
+        Cx = self.stiffness._find_longitudinal_stiffness(FZ=FZ, P=P)
 
         # longitudinal relaxation length (A3.9)
         sigma_x = KXK / Cx
