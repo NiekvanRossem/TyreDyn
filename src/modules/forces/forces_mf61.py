@@ -2,13 +2,13 @@ from src.utils.formatting import SignalLike, AngleUnit
 from typing import Literal
 import numpy as np
 
-class ForcesMF61:
+class ForcesMF6x:
     """
-    Forces module for MF 6.1
+    Forces module for the MF 6.1 and MF 6.2 tyre models.
     """
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
         self._model = model
 
         # helper functions
@@ -28,17 +28,16 @@ class ForcesMF61:
     #------------------------------------------------------------------------------------------------------------------#
     # LONGITUDINAL FORCES
 
-    def find_fx_pure(
+    def _find_fx_pure(
             self,
             *,
             SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VC:   SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the longitudinal force for pure slip conditions.
@@ -49,39 +48,25 @@ class ForcesMF61:
             Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VC : SignalLike, optional
-            Contact patch speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
+            Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
-        FX : SignalLike
+        FX0 : SignalLike
             Longitudinal force for pure slip.
         """
 
-        # set default values for optional arguments
-        P  = self.INFLPRES if P is None else P
-        VC = self.LONGVL if VC is None else VC
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SL, FZ, P, IA, VC, VS, PHIT = self._format_check([SL, FZ, P, IA, VC, VS, PHIT])
-
-        # perform limit checks
-        if self._check_limits:
-            self._limit_check(SA=None, SL=SL, FZ=FZ, P=P, IA=IA)
-
-        # correct angle if mismatched between input array and TIR file
-        IA, angle_unit = self._angle_unit_check(IA, angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=0.0, SL=SL, VX=VX)
 
         # reference speed
         V0 = self.LONGVL
@@ -93,7 +78,7 @@ class ForcesMF61:
         else:
             zeta_1 = self.zeta_default
 
-        # normalize inputs
+        # _normalize inputs
         dfz = self.normalize._find_dfz(FZ)
 
         # composite friction scaling factor (4.E7)
@@ -105,73 +90,79 @@ class ForcesMF61:
         # horizontal shift (4.E17)
         S_HX = (self.PHX1 + self.PHX2 * dfz) * self.LHX
 
+        # low speed correction
+        S_HX = self.normalize._correct_signal(S_HX, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
+                                              threshold=self.VXLOW, method="<")
+
         # vertical shift (4.E18)
         S_VX = FZ * (self.PVX1 + self.PVX2 * dfz) * self.LVX * LMUX_prime * zeta_1
+
+        # low speed correction
+        S_VX = self.normalize._correct_signal(S_VX, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
+                                              threshold=self.VXLOW, method="<")
 
         # corrected slip ratio (4.E10)
         kappa_x = SL + S_HX
 
         # shape factor (4.E11)
-        C_X = self.PCX1 * self.LCX
+        CX = self.PCX1 * self.LCX
 
         # friction coefficient (4.E13)
-        mu_x = self.friction.find_mu_x(FZ=FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
+        mu_x = self.friction._find_mu_x(SA=0.0, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
 
         # peak factor (4.E12)
-        D_X = mu_x * FZ * zeta_1
+        DX = mu_x * FZ * zeta_1
 
         # curvature factor (4.E14)
-        E_X = (self.PEX1 + self.PEX2 * dfz + self.PEX3 * dfz ** 2) * (1.0 - self.PEX4 * np.sign(kappa_x)) * self.LEX
+        EX = (self.PEX1 + self.PEX2 * dfz + self.PEX3 * dfz ** 2) * (1.0 - self.PEX4 * np.sign(kappa_x)) * self.LEX
 
         # slip stiffness (4.E15)
-        KXK = self.gradient.find_slip_stiffness(FZ=FZ)
+        KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
 
         # stiffness factor (4.E16)
-        B_X = KXK / (C_X * D_X + self.eps_x)
+        BX = KXK / (CX * DX + self._eps_x)
 
         # Longitudinal force (4.E9) -- slip ratio trig functions do not get corrected to degrees
-        FX = D_X * np.sin(C_X * self.atan(B_X * kappa_x - E_X * (B_X * kappa_x - np.atan2(B_X * kappa_x, 1)))) + S_VX
+        FX0 = DX * np.sin(CX * self.atan(BX * kappa_x - EX * (BX * kappa_x - np.atan2(BX * kappa_x, 1)))) + S_VX
 
-        return FX
+        # flip sign for negative speeds (only if alpha_star is used)
+        FX0 = self.normalize._flip_negative(FX0, helper_sig=VX) if self._use_alpha_star else FX0
 
-    def find_fx_combined(
+        return FX0
+
+    def _find_fx_combined(
             self,
             *,
             SA:   SignalLike,
             SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VC:   SignalLike = None,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the longitudinal force for combined slip conditions.
 
         Parameters
         ----------
-        VC
         SA : SignalLike
             Slip angle.
         SL : SignalLike
             Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -179,17 +170,8 @@ class ForcesMF61:
             Longitudinal force for combined slip conditions.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VC  = self.LONGVL if VC is None else VC
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+        # find other velocity components
+        VCX = VX
 
         # normalized vertical load
         dfz = self.normalize._find_dfz(FZ)
@@ -220,7 +202,7 @@ class ForcesMF61:
         GXA = np.cos(C_XA * self.atan(B_XA * alpha_s - E_XA * (B_XA * alpha_s - self.atan(B_XA * alpha_s)))) / GXAO
 
         # force for pure slip
-        FX0 = self.find_fx_pure(SL=SL, FZ=FZ, P=P, IA=IA, VC=VC, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        FX0 = self._find_fx_pure(SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # longitudinal force for combined slip (4.E50)
         FX = FX0 * GXA
@@ -229,17 +211,16 @@ class ForcesMF61:
     #------------------------------------------------------------------------------------------------------------------#
     # LATERAL FORCES
 
-    def find_fy_pure(
+    def _find_fy_pure(
             self,
             *,
             SA:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the side force for pure slip conditions.
@@ -250,42 +231,34 @@ class ForcesMF61:
             Slip angle.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
-        FY : SignalLike
+        FY0 : SignalLike
             Side force for pure slip conditions.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, FZ, P, IA, VS, VCX, PHIT = self._format_check([SA, FZ, P, IA, VS, VCX, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=0.0, VX=VX)
+        VCX = VX
 
         # turn slip correction
         if self._use_turn_slip:
             PHI    = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0  # (4.83)
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2, angle_unit=angle_unit)
+            zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
+                                                 zeta_2=zeta_2)
         else:
             zeta_0 = self.zeta_default
             zeta_2 = self.zeta_default
@@ -310,18 +283,18 @@ class ForcesMF61:
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # cornering stiffness (4.E25)
-        KYA = self.gradient.find_cornering_stiffness(FZ=FZ, P=P, IA=IA, PHIT=PHIT, angle_unit=angle_unit)
+        KYA = self.gradient._find_cornering_stiffness(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # camber stiffness (4.E30)
-        KYCO = self.gradient.find_camber_stiffness(FZ=FZ)
+        KYCO = self.gradient._find_camber_stiffness(FZ=FZ, P=P)
 
         # vertical shifts (4.E29)
-        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime,
+        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, VX=VX, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime,
                                              zeta_2=zeta_2)
 
         # horizontal shift (4.E27)
-        S_HY = self.common._find_s_hy(dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg, zeta_0=zeta_0,
-                                      zeta_4=zeta_4)
+        S_HY = self.common._find_s_hy(VX=VX, dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg,
+                                      zeta_0=zeta_0, zeta_4=zeta_4)
 
         # corrected slip angle (4.E20)
         alpha_y = alpha_star + S_HY
@@ -330,7 +303,7 @@ class ForcesMF61:
         CY = self.common._find_cy()
 
         # friction coefficient (4.E23)
-        mu_y = self.friction.find_mu_y(FZ=FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
+        mu_y = self.friction._find_mu_y(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX)
 
         # peak factor (4.E22)
         DY = self.common._find_dy(mu_y=mu_y, FZ=FZ, zeta_2=zeta_2)
@@ -343,22 +316,24 @@ class ForcesMF61:
         BY = self.common._find_by(FZ=FZ, KYA=KYA, CY=CY, DY=DY)
 
         # lateral force (4.E19)
-        FY = DY * self.sin(CY * self.atan(BY * alpha_y - EY * (BY * alpha_y - self.atan(BY * alpha_y)))) + S_VY
+        FY0 = DY * self.sin(CY * self.atan(BY * alpha_y - EY * (BY * alpha_y - self.atan(BY * alpha_y)))) + S_VY
 
-        return FY
+        # flip sign for negative speeds (only if alpha_star is used)
+        FY0 = self.normalize._flip_negative(FY0, helper_sig=VX) if self._use_alpha_star else FY0
 
-    def find_fy_combined(
+        return FY0
+
+    def _find_fy_combined(
             self,
             *,
             SA:   SignalLike,
             SL:   SignalLike,
             FZ:   SignalLike,
+            N:    SignalLike,
             P:    SignalLike = None,
             IA:   SignalLike = 0.0,
-            VCX:  SignalLike = None,
-            VS:   SignalLike = 0.0,
-            PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            VX:   SignalLike = None,
+            PHIT: SignalLike = 0.0
     ) -> SignalLike:
         """
         Returns the side force for combined slip conditions.
@@ -371,18 +346,16 @@ class ForcesMF61:
             Slip ratio.
         FZ : SignalLike
             Vertical load.
+        N : SignalLike, optional
+            Angular speed of the wheel (will be calculated from ``VX`` and ``SL`` if not specified).
         P : SignalLike, optional
             Tyre pressure (will default to ``INFLPRES`` if not specified).
         IA : SignalLike, optional
-            Inclination angle with respect to the ground plane (will default to zero if not specified).
-        VCX : SignalLike, optional
+            Inclination angle with respect to the ground plane (will default to ``0.0`` if not specified).
+        VX : SignalLike, optional
             Contact patch longitudinal speed (will default to ``LONGVL`` if not specified).
-        VS : SignalLike, optional
-            Slip speed magnitude (will default to zero if not specified).
         PHIT : SignalLike, optional
-            Turn slip (will default to zero if not specified).
-        angle_unit : string, optional
-            Unit of the signals indicating an angle. Set to ``"deg"`` if your input arrays are specified in degrees.
+            Turn slip (will default to ``0.0`` if not specified).
 
         Returns
         -------
@@ -390,16 +363,9 @@ class ForcesMF61:
             Side force for combined slip conditions.
         """
 
-        # set default values for optional arguments
-        P   = self.INFLPRES if P is None else P
-        VCX = self.LONGVL if VCX is None else VCX
-
-        # check if arrays have the right dimension, and flatten if needed
-        if self._check_format:
-            SA, SL, FZ, P, IA, VCX, VS, PHIT = self._format_check([SA, SL, FZ, P, IA, VCX, VS, PHIT])
-
-        # correct angle if mismatched between input array and TIR file
-        [SA, IA], angle_unit = self._angle_unit_check([SA, IA], angle_unit)
+        # find other velocity components
+        VS, VC = self.normalize._find_speeds(SA=SA, SL=SL, VX=VX)
+        VCX = VX
 
         # turn slip correction
         if self._use_turn_slip:
@@ -412,7 +378,7 @@ class ForcesMF61:
         dfz = self.normalize._find_dfz(FZ)
 
         # side force for pure slip
-        FY0 = self.find_fy_pure(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, PHIT=PHIT, angle_unit=angle_unit)
+        FY0 = self._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # corrected slip angle (4.E53)
         alpha_star = self.correction._find_alpha_star(SA=SA, VCX=VCX)
@@ -421,7 +387,7 @@ class ForcesMF61:
         gamma_star = self.correction._find_gamma_star(IA)
 
         # lateral friction coefficient
-        mu_y = self.friction.find_mu_y(FZ=FZ, P=P, IA=IA, VS=VS, angle_unit=angle_unit)
+        mu_y = self.friction._find_mu_y(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
 
         # peak factor (4.E67)
         D_VYK = (mu_y * FZ * (self.RVY1 + self.RVY2 * dfz + self.RVY3 * gamma_star)

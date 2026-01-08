@@ -191,7 +191,7 @@ class TyreBase:
     @staticmethod
     def _format_check(sig_in: Union[SignalLike, list[SignalLike]]) -> SignalLike:
         """
-        Checks the shape of the input data. Valid input signals are:
+        Checks the shape of the input example_tyres. Valid input signals are:
            - ``int``
            - ``float``
            - ``list`` of either ``int`` or ``float``

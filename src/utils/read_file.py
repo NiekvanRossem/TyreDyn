@@ -5,7 +5,7 @@ def read_tir(filename: str) -> dict:
     """
     Reads the TIR file, and store parameters as a dictionary.
 
-    :param filename: Name of the TIR file to be read. Will assume this file is stored inside `data/tyres`.
+    :param filename: Name of the TIR file to be read. Will assume this file is stored inside `example_tyres/tyres`.
     :return: Dictionary of parameter names and values.
     """
 
@@ -19,7 +19,7 @@ def read_tir(filename: str) -> dict:
         for line in data:
             line = line.strip()
 
-            # non-data line
+            # non-example_tyres line
             if line.startswith('$-') or line.startswith('!'):
                 continue
 
@@ -28,7 +28,7 @@ def read_tir(filename: str) -> dict:
                 current_header = line[1:-1]
                 params[current_header] = {}
 
-            # line contains useful data
+            # line contains useful example_tyres
             elif '=' in line:
 
                 # filter out the comment if there is one

@@ -1,6 +1,24 @@
-/data
-/notebooks_private/
-*.pyc
-/.idea
-/src/archive
+# private folders
 /archive
+/example_tyres
+/notebooks_private/
+/test_scripts
+
+# Python-generated files
+__pycache__/
+build/
+dist/
+wheels/
+*.pyc
+
+# virtual environments
+.venv/
+venc/
+.env/
+env/
+
+# VS code config
+.vscode/
+
+
+/.idea

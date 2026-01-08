@@ -1,7 +1,7 @@
 from typing import Union, TypeAlias, Literal
 import numpy as np
 
-# create alias for allowable data types
+# create alias for allowable example_tyres types
 NumberLike : TypeAlias = int | float
 SignalLike : TypeAlias = NumberLike | list[NumberLike] | np.ndarray
 AngleUnit = Literal["deg", "rad"]
