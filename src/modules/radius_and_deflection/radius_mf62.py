@@ -75,9 +75,6 @@ class RadiusMF62:
         # free rolling radius (MF6.2 equation manual)
         R_omega = self.common._find_free_radius(N=N, R0=R0, V0=V0)
 
-        # vertical stiffness
-        CZ = self.stiffness._find_vertical_stiffness(P)
-
         # effective radius (A3.6) -- FZ trig functions do not get corrected to degrees
         RE = self.common._find_effective_radius(FZ=FZ, P=P, R_omega=R_omega, FZ0=FZ0)
 
@@ -85,15 +82,13 @@ class RadiusMF62:
         Q_FZ1 = np.sqrt((CZ0 * R0 / FZ0) ** 2 - 4 * self.Q_FZ2)
 
         # set bounds for optimization
-        RL_lower = 0.95 * R_omega
-        RL_upper = R_omega
+        RL_lower  = 0.95 * R_omega
+        RL_upper  = R_omega
+        RL_newest = None
 
         # evaluate function for initial bounds
-        y_lower = self.__find_fz(FX=FX, FY=FY, RL=RL_lower, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0,
-                                 Q_FZ1=Q_FZ1) - FZ
-        y_upper = self.__find_fz(FX=FX, FY=FY, RL=RL_upper, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0,
-                                 Q_FZ1=Q_FZ1) - FZ
-        RL_newest = None
+        y_lower = self.__find_fz(FX=FX, FY=FY, RL=RL_lower, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0, Q_FZ1=Q_FZ1) - FZ
+        y_upper = self.__find_fz(FX=FX, FY=FY, RL=RL_upper, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0, Q_FZ1=Q_FZ1) - FZ
 
         # counter TODO: add convergence flags
         counter = 0
@@ -115,7 +110,7 @@ class RadiusMF62:
             if error < tolx * FZ0:
                 break
             if counter == maxiter - 1:
-                warnings.warn(f"Maximum number of iterations reached. No solution for the loaded radius found. Final error is {error:.6e}")
+                warnings.warn("Maximum number of iterations reached. No solution for the loaded radius found. Final error is {0}".format(error))
             counter += 1
         RL = RL_newest
 
@@ -161,8 +156,7 @@ class RadiusMF62:
             Q_FZ1:   NumberLike
     ) -> SignalLike:
         """
-        Returns the vertical load as a function of the free rolling radius and the loaded radius. Used in
-        ``__secant_method()`` to find the loaded radius corresponding to the current vertical load.
+        Returns the vertical load as a function of the free rolling radius and the loaded radius.
 
         Parameters
         ----------
@@ -193,6 +187,11 @@ class RadiusMF62:
             Vertical load.
         """
 
+        # unpack tyre properties
+        CZ_btm      = self.BOTTOM_STIFF
+        R_rim       = self.RIM_RADIUS
+        delta_btm   = self.BOTTOM_OFFST
+
         # asymmetric shift for camber and lateral force (MF 6.2 equation manual)
         ratio = RL / R_omega
         S_FYC = (self.Q_FYS1 + self.Q_FYS2 * ratio + self.Q_FYS3 * ratio ** 2) * IA
@@ -201,12 +200,18 @@ class RadiusMF62:
         rho_z = self.__find_deflection(R_omega=R_omega, RL=RL, IA=IA)
 
         # correction term (MF 6.2 equation manual)
-        speed_effect = self.Q_V2 * (R0 / V0) * np.abs(N)
-        fx_effect = ((self.Q_FCX * FX) / FZ0) ** 2
-        fy_effect = ((rho_z / R0) ** self.Q_FCY2 * (self.Q_FCY * (FY - S_FYC) / FZ0)) ** 2
+        speed_effect    = self.Q_V2 * (R0 / V0) * np.abs(N)
+        fx_effect       = ((self.Q_FCX * FX) / FZ0) ** 2
+        fy_effect       = ((rho_z / R0) ** self.Q_FCY2 * (self.Q_FCY * (FY - S_FYC) / FZ0)) ** 2
         pressure_effect = 1.0 + self.PFZ1 * dpi
         f_corr = (1.0 + speed_effect - fx_effect - fy_effect) * pressure_effect
 
         # vertical load
         FZ = f_corr * (Q_FZ1 * (rho_z / R0) + self.Q_FZ2 * (rho_z / R0) ** 2) * FZ0
-        return FZ
+
+        # bottoming out force (MF 6.2 equation manual)
+        FZ_btm = CZ_btm * (R_rim + delta_btm - RL)
+
+        # total vertical load
+        FZ_final = np.maximum(FZ, FZ_btm)
+        return FZ_final

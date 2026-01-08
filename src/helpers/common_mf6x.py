@@ -119,10 +119,29 @@ class CommonMF6x:
         P  = self.INFLPRES if P is None else P
         VX = self.LONGVL if VX is None else VX
 
-        # TODO: add fade out at low speed
+        # smooth reduction factor
+        self.smooth_reduction = 1.0 - 0.5 * (1.0 + np.cos(np.pi * VX / self.VXLOW))
 
-        # correct turn slip (empirically discovered by Marco Furlan)
+        # low speed correction for slip ratio and turn slip
+        idx = np.where(VX < self.VXLOW)
+        linear_correction = np.abs(VX[idx] / self.VXLOW)
+        PHIT[idx] *= linear_correction
+        SL[idx]   *= linear_correction
+
+        # lateral slip speed (2.12)
+        VSY = VX * self.tan(SA)
+
+        # low speed correction for slip angle
+        speed_sum = np.abs(VX) + np.abs(VSY)
+        idx = np.where(speed_sum < self.VXLOW)
+        alpha_correction = speed_sum[idx] / self.VXLOW
+        SA[idx] *= alpha_correction
+
+        # correct turn slip (empirically discovered by Marco Furlan) TODO: only for turn slip?
         PHIT = PHIT * self.cos(SA) if SA is not None else PHIT
+
+        # flip the sign of the turn slip for negative speeds
+        PHIT = self.normalize._flip_negative(PHIT, helper_sig=VX)
 
         # check if arrays have the right dimension, and flatten if needed
         if self._check_format:
@@ -261,6 +280,7 @@ class CommonMF6x:
     def _find_s_hy(
             self,
             *,
+            VX:         SignalLike,
             dfz:        SignalLike,
             KYA:        SignalLike,
             KYCO:       SignalLike,
@@ -271,15 +291,21 @@ class CommonMF6x:
     ) -> SignalLike:
         """Finds the horizontal shift for the side force. Used in ``ForcesMF6x`` and ``MomentsMF6x``."""
 
-        # (4.E27)
+        # horizontal shift for side force (4.E27)
         S_HY = ((self.PHY1 + self.PHY2 * dfz) * self.LHY + (KYCO * gamma_star - S_VYg)
                 / (KYA + self._eps_kappa) * zeta_0 + zeta_4 - 1.0)
+
+        # low speed correction
+        S_HY = self.normalize._correct_signal(S_HY, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
+                                              threshold=self.VXLOW, method="<")
+
         return S_HY
 
     def _find_s_vy(
             self,
             *,
             FZ:         SignalLike,
+            VX:         SignalLike,
             dfz:        SignalLike,
             gamma_star: SignalLike,
             LMUY_prime: SignalLike,
@@ -292,6 +318,11 @@ class CommonMF6x:
 
         # total vertical shift (4.E29)
         S_VY = FZ * (self.PVY1 + self.PVY2 * dfz) * self.LVY * LMUY_prime * zeta_2 + S_VYg
+
+        # low speed correction
+        S_VY = self.normalize._correct_signal(S_VY, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
+                                              threshold=self.VXLOW, method="<")
+
         return S_VY, S_VYg
 
     #------------------------------------------------------------------------------------------------------------------#

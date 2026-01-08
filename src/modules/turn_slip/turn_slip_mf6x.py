@@ -114,14 +114,16 @@ class TurnSlipMF6x:
 
         # cornering stiffness
         KYA = GradientsMF6x._find_cornering_stiffness(self, SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHI)
+        KYA_sign = self.normalize._replace_value(np.sign(KYA), target_sig=KYA, target_val=0.0, new_val=1.0)
 
         # NOTE: this parameter is not explained in the book or paper, but according to Kaustub Ragunathan from
         # IPG-Carmaker it is cornering stiffness for zero camber (via Marco Furlan from MFeval).
         KYAO = GradientsMF6x._find_cornering_stiffness(self, SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=0.0, VX=VX, PHIT=PHI)
+        KYAO_sign = self.normalize._replace_value(np.sign(KYAO), target_sig=KYAO, target_val=0.0, new_val=1.0)
 
         # corrected cornering stiffness (4.E39)
-        KYA_prime  = KYA  + self._eps_kappa * np.sign(KYA)
-        KYAO_prime = KYAO + self._eps_kappa * np.sign(KYAO)
+        KYA_prime  = KYA  + self._eps_kappa * KYA_sign
+        KYAO_prime = KYAO + self._eps_kappa * KYAO_sign
 
         # camber stiffness
         KYCO = GradientsMF6x._find_camber_stiffness(self, FZ=FZ, P=P)
@@ -150,7 +152,8 @@ class TurnSlipMF6x:
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # vertical shift
-        _, S_VYg = self.common._find_s_vy(FZ=FZ, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime, zeta_2=zeta_2)
+        _, S_VYg = self.common._find_s_vy(FZ=FZ, VX=VX, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime,
+                                          zeta_2=zeta_2)
 
         # (4.84)
         zeta_4 = 1.0 + S_HYP - S_VYg / KYA_prime
@@ -207,39 +210,35 @@ class TurnSlipMF6x:
 
         # turn slip moment at vanishing speed
         MZP_inf = self.QCRP1 * mu_y * R0 * FZ * np.sqrt(FZ / FZ0_prime) * self.LMP
+        MZP_inf = np.maximum(MZP_inf, 1e-6)  # should always be greater than zero
 
         # combined slip scaling factor
         GYK = self.common._find_gyk(SA=SA, SL=SL, FZ=FZ, IA=IA, VCX=VCX)
 
-        # turn slip moment at 90 degrees NEEDS PHIT
+        # turn slip moment at 90 degrees
         MZP_90 = MZP_inf * (2.0 / np.pi) * np.atan2(self.QCRP2 * R0 * np.abs(PHIT), 1) * GYK
 
-        # peak factor NEEDS PHI
-        DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI, R0=R0, FZ0_prime=FZ0_prime)
+        # peak factor
+        DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT, R0=R0, FZ0_prime=FZ0_prime)
+        DRP = np.maximum(DRP, 1e-6) # to avoid dividing by zero
 
-        # turn slip correction
-        zeta_7 = (2.0 / np.pi) * np.acos(MZP_90 / (np.abs(DRP) + self._eps_r))
+        # turn slip correction (MF 6.2 equation manual)
+        # NOTE: The book by Pacejka & Besselink adds eps_r to the denominator of the acos term below.
+        zeta_7 = (2.0 / np.pi) * np.acos(MZP_90 / np.abs(DRP))
         return zeta_7
 
     def _find_zeta_8(
             self,
             *,
-            SA:  SignalLike,
-            SL:  SignalLike,
-            FZ:  SignalLike,
-            P:   SignalLike,
-            IA:  SignalLike,
-            VX:  SignalLike,
-            PHI: SignalLike
+            SA:   SignalLike,
+            SL:   SignalLike,
+            FZ:   SignalLike,
+            P:    SignalLike,
+            IA:   SignalLike,
+            VX:   SignalLike,
+            PHIT: SignalLike
     ) -> SignalLike:
-        """Returns the turn slip correction that scales the peak of the residual couple.
-
-        Parameters
-        ----------
-        VX
-        SA
-        SL
-        """
+        """Returns the turn slip correction that scales the peak of the residual couple."""
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -249,7 +248,7 @@ class TurnSlipMF6x:
         FZ0_prime = FZ0 * self.LFZO
 
         # peak factor
-        DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI, R0=R0, FZ0_prime=FZ0_prime)
+        DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT, R0=R0, FZ0_prime=FZ0_prime)
 
         # final correction (4.92)
         zeta_8 = 1.0 + DRP
@@ -264,7 +263,7 @@ class TurnSlipMF6x:
             P:   SignalLike,
             IA:  SignalLike,
             VX:  SignalLike,
-            PHI: SignalLike,
+            PHIT: SignalLike,
             R0:  SignalLike,
             FZ0_prime: NumberLike
     ) -> SignalLike:
@@ -278,6 +277,7 @@ class TurnSlipMF6x:
 
         # self aligning moment at vanishing wheel speed (4.95)
         MZP_inf = self.QCRP1 * mu_y * R0 * FZ * np.sqrt(FZ / FZ0_prime) * self.LMP
+        MZP_inf = np.maximum(MZP_inf, 1e-6) # should always be greater than zero
 
         # (4.99)
         KZCRO = FZ * R0 * (self.QDZ8 + self.QDZ9 * dfz + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(IA)) * self.LKZC
@@ -302,7 +302,7 @@ class TurnSlipMF6x:
         # below in the comment (4.93). EDRP is equal to QDRP2 (4.93), but this parameter generally does not exist in TIR
         # files. Via Marco Furlan from MFeval
         # DRP = DDRP * self.sin(CDRP * np.atan(PHI_corr - EDRP * (PHI_corr - self.atan(PHI_corr))))
-        PHI_corr = BDRP * R0 * PHI
+        PHI_corr = BDRP * R0 * PHIT
         DRP = DDRP * np.sin(CDRP * np.atan2(PHI_corr, 1))
 
         return DRP

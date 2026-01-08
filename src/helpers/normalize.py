@@ -1,4 +1,5 @@
 from src.utils.formatting import SignalLike
+from typing import Union, Literal
 import numpy as np
 
 # TODO: rename
@@ -68,3 +69,69 @@ class Normalize:
         V = np.sqrt(VX ** 2 + VSY ** 2)
 
         return VS, V
+
+    @staticmethod
+    def _replace_value(
+            sig_in:     SignalLike,
+            *,
+            target_sig: SignalLike,
+            target_val: Union[float, int],
+            new_val:    Union[float, int],
+    ) -> SignalLike:
+        """
+        Replaces the values of ``sig_in`` with ``new_val``, on the indices where ``target_sig`` matches
+        ``target_val``.
+        """
+
+        # for numpy arrays
+        if isinstance(sig_in, np.ndarray):
+            sig_in[target_sig == target_val] = new_val
+
+        # for lists
+        elif isinstance(sig_in, list):
+            sig_in = [new_val if v == target_val else sig_in[v] for v in target_sig]
+
+        # for single values
+        else:
+            sig_in = new_val if target_sig == target_val else sig_in
+
+        return sig_in
+
+    @staticmethod
+    def _flip_negative(sig_in: SignalLike, *, helper_sig) -> SignalLike:
+        """Flips the sign of ``sig_in`` on the places where ``helper_sig`` is negative."""
+
+        # find indices where the target signal is negative
+        idx = np.where(helper_sig < 0)
+
+        # flip sign of sig
+        sig_in[idx] = - sig_in[idx]
+        return sig_in
+
+    @staticmethod
+    def _correct_signal(
+            sig_in: SignalLike,
+            *,
+            correction_factor: SignalLike,
+            helper_sig: SignalLike,
+            threshold: NumberLike,
+            method: Literal["<", ">", "=", "<=", ">="]
+    ) -> SignalLike:
+        """Multiplies the input signal with the correction factor, on the indices where the helper signal is less than
+        the threshold."""
+
+        if method == "<":
+            idx = np.where(helper_sig < threshold)
+        elif method == ">":
+            idx = np.where(helper_sig > threshold)
+        elif method == "=":
+            idx = np.where(helper_sig == threshold)
+        elif method == "<=":
+            idx = np.where(helper_sig <= threshold)
+        elif method == ">=":
+            idx = np.where(helper_sig >= threshold)
+        else:
+            raise SyntaxError("method must be <, >, <=, >=")
+
+        sig_in[idx] *= correction_factor[idx]
+        return sig_in

@@ -4,17 +4,18 @@ Author(s):        Niek van Rossem
 Creation date:    31-10-2025
 
 Documentation:
-This script contains all the code for the TIR file data validation with Pydantic. Once a TIR file is loaded in, it's
-data is stored in a dict. All fields are checked for compatibility with the selected tyre model (e.g. MF6.2). Missing
-fields and fields with the wrong data type will raise an error.
+This script contains all the code for the TIR file example_tyres validation with Pydantic. Once a TIR file is loaded in, it's
+example_tyres is stored in a dict. All fields are checked for compatibility with the selected tyre model (e.g. MF6.2). Missing
+fields and fields with the wrong example_tyres type will raise an error.
 
 To use manually, simply call TIRValidation.validate_with_model(tyre), where `tyre` is your dict with tyre params.
 
 ChatGPT was used for advice regarding best practices and debugging. Code was fully tested and verified before release.
 
-Current version: 1.0
+Current version: 1.1
 
 Changelog:
+    01-01-2026: Removed MF-Swift parameters. Added support for MF 5.2 and MF 6.1
     07-12-2025: First working version. Only supports MF 6.2
 """
 
@@ -86,11 +87,11 @@ class ModelSection(RootModel[Dict[str, float | int | str]]):
     # initialize dictionary with required parameters
     required_params: ClassVar[dict[str, set[str]]] = {
         "Any": {
-            "FITTYP", "TYRESIDE", "LONGVL", "VXLOW", "ROAD_INCREMENT", "ROAD_DIRECTION"
+            "FITTYP", "TYRESIDE", "LONGVL", "VXLOW"
         }
     }
 
-    # check if all required parameters are present (updated version to account for the various data types
+    # check if all required parameters are present (updated version to account for the various example_tyres types
     @field_validator('root')
     def validate_model(cls, v, info):
 
@@ -121,6 +122,8 @@ class ModelSection(RootModel[Dict[str, float | int | str]]):
 class DimensionSection(FloatSection):
     """Subclass to validate the DIMENSION section of a TIR file."""
 
+    # TODO: pre-MF52 models had fewer keys
+
     required_params = {
         "Any": {
             "UNLOADED_RADIUS", "WIDTH", "RIM_RADIUS", "RIM_WIDTH", "ASPECT_RATIO"
@@ -141,20 +144,33 @@ To add a new parameter category, create a new class that inherits `FloatSection`
 inside it as a dictionary.
 """
 
+# DONE
 class OperatingConditionsSection(FloatSection):
     required_params = {
-        "Any": {"INFLPRES", "NOMPRES"
-        }
+        "MF5.2": {},
+        "MF6.1": {"INFLPRES", "NOMPRES"},
+        "MF6.2": {"INFLPRES", "NOMPRES"}
     }
 
+# DONE
 class InertiaSection(FloatSection):
     required_params = {
-        "Any": {"MASS", "IXX", "IYY", "BELT_MASS", "BELT_IXX", "BELT_IYY", "GRAVITY"
-        }
+        "MF5.2": {},
+        "MF6.1": {"MASS", "IXX", "IYY"},
+        "MF6.2": {"MASS", "IXX", "IYY"}
     }
 
+# DONE
 class VerticalSection(FloatSection):
     required_params = {
+        "MF5.2": {
+            "FNOMIN", "VERTICAL_STIFFNESS", "VERTICAL_DAMPING", "BREFF", "DREFF",
+            "FREFF", "Q_RE0", "Q_V1", "Q_V2", "Q_FZ2", "Q_FCX", "Q_FCY"
+        },
+        "MF6.1": {
+            "FNOMIN", "VERTICAL_STIFFNESS", "VERTICAL_DAMPING", "MC_CONTOUR_A", "MC_CONTOUR_B", "BREFF", "DREFF",
+            "FREFF", "Q_RE0", "Q_V1", "Q_V2", "Q_FZ2", "Q_FCX", "Q_FCY", "Q_CAM", "PFZ1", "BOTTOM_OFFST", "BOTTOM_STIFF"
+        },
         "MF6.2": {
             "FNOMIN", "VERTICAL_STIFFNESS", "VERTICAL_DAMPING", "MC_CONTOUR_A", "MC_CONTOUR_B", "BREFF", "DREFF",
             "FREFF", "Q_RE0", "Q_V1", "Q_V2", "Q_FZ2", "Q_FCX", "Q_FCY", "Q_CAM", "PFZ1", "Q_FCY2", "Q_CAM1", "Q_CAM2",
@@ -162,89 +178,122 @@ class VerticalSection(FloatSection):
         }
     }
 
+# DONE
 class StructuralSection(FloatSection):
     required_params = {
+        "MF5.2": {},
+        "MF6.1": {
+            "LONGITUDINAL_STIFFNESS", "LATERAL_STIFFNESS", "YAW_STIFFNESS", "DAMP_RESIDUAL", "DAMP_VLOW",
+            "PCFX1", "PCFX2", "PCFX3", "PCFY1", "PCFY2", "PCFY3", "PCMZ1"
+        },
         "MF6.2": {
-            "LONGITUDINAL_STIFFNESS", "LATERAL_STIFFNESS", "YAW_STIFFNESS", "FREQ_LONG", "FREQ_LAT", "FREQ_YAW",
-            "FREQ_WINDUP", "DAMP_LONG", "DAMP_LAT", "DAMP_YAW", "DAMP_WINDUP", "DAMP_RESIDUAL", "DAMP_VLOW", "Q_BVX",
-            "Q_BVT", "PCFX1", "PCFX2", "PCFX3", "PCFY1", "PCFY2", "PCFY3", "PCMZ1"
+            "LONGITUDINAL_STIFFNESS", "LATERAL_STIFFNESS", "YAW_STIFFNESS", "DAMP_RESIDUAL", "DAMP_VLOW",
+            "PCFX1", "PCFX2", "PCFX3", "PCFY1", "PCFY2", "PCFY3", "PCMZ1"
         }
     }
 
+# DONE
 class ContactPatchSection(FloatSection):
     required_params = {
-        "MF6.2": {
-            "Q_RA1", "Q_RA2", "Q_RB1", "Q_RB2", "ELLIPS_SHIFT", "ELLIPS_LENGTH", "ELLIPS_HEIGHT", "ELLIPS_ORDER",
-            "ELLIPS_MAX_STEP", "ELLIPS_NWIDTH", "ELLIPS_NLENGTH", "ENV_C1", "ENV_C2"
-        }
+        "Any": {}
     }
 
+# DONE
 class LongitudinalSection(FloatSection):
     required_params = {
+        "MF5.2": {
+            "PCX1", "PDX1", "PDX2", "PDX3", "PEX1", "PEX2", "PEX3", "PEX4", "PKX1", "PKX2", "PKX3", "PHX1", "PHX2",
+            "PVX1", "PVX2", "RBX1", "RBX2", "RBX3", "RCX1", "REX1", "REX2", "RHX1"
+        },
+        "MF6.1": {
+            "PCX1", "PDX1", "PDX2", "PDX3", "PEX1", "PEX2", "PEX3", "PEX4", "PKX1", "PKX2", "PKX3", "PHX1", "PHX2",
+            "PVX1", "PVX2", "PPX1", "PPX2", "PPX3", "PPX4", "RBX1", "RBX2", "RBX3", "RCX1", "REX1", "REX2", "RHX1"
+        },
         "MF6.2": {
             "PCX1", "PDX1", "PDX2", "PDX3", "PEX1", "PEX2", "PEX3", "PEX4", "PKX1", "PKX2", "PKX3", "PHX1", "PHX2",
             "PVX1", "PVX2", "PPX1", "PPX2", "PPX3", "PPX4", "RBX1", "RBX2", "RBX3", "RCX1", "REX1", "REX2", "RHX1"
         }
     }
 
+# DONE
 class InflationSection(FloatSection):
     required_params = {
-        "Any": {
-            "PRESMIN",
-            "PRESMAX"
-        }
+        "MF5.2": {},
+        "MF6.1": {"PRESMIN", "PRESMAX"},
+        "MF6.2": {"PRESMIN", "PRESMAX"}
     }
 
+# DONE
 class VerticalForceSection(FloatSection):
     required_params = {
-        "Any": {
-            "FZMIN",
-            "FZMAX"
-        }
+        "Any": {"FZMIN", "FZMAX"}
     }
 
+# DONE
 class LongSlipSection(FloatSection):
     required_params = {
-        "Any": {
-            "KPUMIN",
-            "KPUMAX"
-        }
+        "Any": {"KPUMIN", "KPUMAX"}
     }
 
+# DONE
 class SlipAngleSection(FloatSection):
     required_params = {
-        "Any": {
-            "ALPMIN",
-            "ALPMAX"
-        }
+        "Any": { "ALPMIN", "ALPMAX"}
     }
 
+# DONE
 class InclinationAngleSection(FloatSection):
     required_params = {
-        "Any": {
-            "CAMMIN",
-            "CAMMAX"
-        }
+        "Any": {"CAMMIN", "CAMMAX"}
     }
 
+# DONE
 class ScalingSection(FloatSection):
     required_params = {
+        "MF5.2": {
+            "LFZO", "LCX", "LMUX", "LEX", "LKX", "LHX", "LVX", "LCY", "LMUY", "LEY", "LKY", "LKYC", "LKZC", "LHY",
+            "LVY", "LTR", "LRES", "LXAL", "LYKA", "LVYKA", "LS", "LMX", "LVMX", "LMY"
+        },
+        "MF6.1": {
+            "LFZO", "LCX", "LMUX", "LEX", "LKX", "LHX", "LVX", "LCY", "LMUY", "LEY", "LKY", "LKYC", "LKZC", "LHY",
+            "LVY", "LTR", "LRES", "LXAL", "LYKA", "LVYKA", "LS", "LMX", "LVMX", "LMY", "LMP"
+        },
         "MF6.2": {
             "LFZO", "LCX", "LMUX", "LEX", "LKX", "LHX", "LVX", "LCY", "LMUY", "LEY", "LKY", "LKYC", "LKZC", "LHY",
             "LVY", "LTR", "LRES", "LXAL", "LYKA", "LVYKA", "LS", "LMX", "LVMX", "LMY", "LMP"
         }
     }
 
+# DONE
 class OverturningSection(FloatSection):
     required_params = {
+        "MF5.2": {
+            "QSX1", "QSX2", "QSX3"
+        },
+        "MF6.1": {
+            "QSX1", "QSX2", "QSX3", "QSX4", "QSX5", "QSX6", "QSX7", "QSX8",
+            "QSX9", "QSX10", "QSX11", "QSX12", "QSX13", "QSX14", "PPMX1"
+        },
         "MF6.2": {
             "QSX1", "QSX2", "QSX3", "QSX4", "QSX5", "QSX6", "QSX7", "QSX8",
             "QSX9", "QSX10", "QSX11", "QSX12", "QSX13", "QSX14", "PPMX1"
         }
     }
 
+# DONE
 class LateralSection(FloatSection):
     required_params = {
+        "MF5.2": {
+            "PCY1", "PDY1", "PDY2", "PDY3", "PEY1", "PEY2", "PEY3", "PEY4", "PKY1", "PKY2", "PKY3", "PHY1", "PHY2",
+            "PVY1", "PVY2", "PVY3", "PVY4", "PPY1", "PPY2", "PPY3", "PPY4", "PPY5", "RBY1", "RBY2", "RBY3", "RBY4",
+            "RCY1", "REY1", "REY2", "RHY1", "RHY2", "RVY1", "RVY2", "RVY3", "RVY4", "RVY5", "RVY6"
+        },
+        "MF6.1": {
+            "PCY1", "PDY1", "PDY2", "PDY3", "PEY1", "PEY2", "PEY3", "PEY4", "PEY5", "PKY1", "PKY2", "PKY3", "PKY4",
+            "PKY5", "PKY6", "PKY7", "PHY1", "PHY2", "PVY1", "PVY2", "PVY3", "PVY4", "PPY1", "PPY2", "PPY3", "PPY4",
+            "PPY5", "RBY1", "RBY2", "RBY3", "RBY4", "RCY1", "REY1", "REY2", "RHY1", "RHY2", "RVY1", "RVY2", "RVY3",
+            "RVY4", "RVY5", "RVY6"
+        },
         "MF6.2": {
             "PCY1", "PDY1", "PDY2", "PDY3", "PEY1", "PEY2", "PEY3", "PEY4", "PEY5", "PKY1", "PKY2", "PKY3", "PKY4",
             "PKY5", "PKY6", "PKY7", "PHY1", "PHY2", "PVY1", "PVY2", "PVY3", "PVY4", "PPY1", "PPY2", "PPY3", "PPY4",
@@ -253,15 +302,33 @@ class LateralSection(FloatSection):
         }
     }
 
+# DONE
 class RollingSection(FloatSection):
     required_params = {
+        "MF5.2": {
+            "QSY1", "QSY2", "QSY3", "QSY4"
+        },
+        "MF6.1": {
+            "QSY1", "QSY2", "QSY3", "QSY4", "QSY5", "QSY6", "QSY7", "QSY8"
+        },
         "MF6.2": {
             "QSY1", "QSY2", "QSY3", "QSY4", "QSY5", "QSY6", "QSY7", "QSY8"
         }
     }
 
+# DONE
 class AligningSection(FloatSection):
     required_params = {
+        "MF5.2": {
+            "QBZ1", "QBZ2", "QBZ3", "QBZ4", "QBZ5", "QBZ9", "QBZ10", "QCZ1", "QDZ1", "QDZ2", "QDZ3", "QDZ4", "QDZ6",
+            "QDZ7", "QDZ8", "QDZ9", "QEZ1", "QEZ2", "QEZ3", "QEZ4", "QEZ5", "QHZ1", "QHZ2", "QHZ3",
+            "QHZ4", "SSZ1", "SSZ2", "SSZ3", "SSZ4"
+        },
+        "MF6.1": {
+            "QBZ1", "QBZ2", "QBZ3", "QBZ4", "QBZ5", "QBZ9", "QBZ10", "QCZ1", "QDZ1", "QDZ2", "QDZ3", "QDZ4", "QDZ6",
+            "QDZ7", "QDZ8", "QDZ9", "QDZ10", "QDZ11", "QEZ1", "QEZ2", "QEZ3", "QEZ4", "QEZ5", "QHZ1", "QHZ2", "QHZ3",
+            "QHZ4", "PPZ1", "PPZ2", "SSZ1", "SSZ2", "SSZ3", "SSZ4"
+        },
         "MF6.2": {
             "QBZ1", "QBZ2", "QBZ3", "QBZ4", "QBZ5", "QBZ9", "QBZ10", "QCZ1", "QDZ1", "QDZ2", "QDZ3", "QDZ4", "QDZ6",
             "QDZ7", "QDZ8", "QDZ9", "QDZ10", "QDZ11", "QEZ1", "QEZ2", "QEZ3", "QEZ4", "QEZ5", "QHZ1", "QHZ2", "QHZ3",
@@ -269,8 +336,14 @@ class AligningSection(FloatSection):
         }
     }
 
+# DONE
 class TurnSlipSection(FloatSection):
     required_params = {
+        "MF5.2": {},
+        "MF6.1": {
+            "PDXP1", "PDXP2", "PDXP3", "PKYP1", "PDYP1", "PDYP2", "PDYP3", "PDYP4", "PHYP1", "PHYP2",
+            "PHYP3", "PHYP4", "PECP1", "PECP2", "QDTP1", "QCRP1", "QCRP2", "QBRP1", "QDRP1"
+        },
         "MF6.2": {
             "PDXP1", "PDXP2", "PDXP3", "PKYP1", "PDYP1", "PDYP2", "PDYP3", "PDYP4", "PHYP1", "PHYP2",
             "PHYP3", "PHYP4", "PECP1", "PECP2", "QDTP1", "QCRP1", "QCRP2", "QBRP1", "QDRP1"
@@ -279,23 +352,29 @@ class TurnSlipSection(FloatSection):
 
 ##--------------------------------------------------------------------------------------------------------------------##
 
-# main validator class for the TIR file data
+# main validator class for the TIR file example_tyres
 class TIRValidation(BaseModel):
     """
     Main class for handling TIR validation. Takes a dictionary with tyre params as an input, and checks whether all
-    params are present and have the correct data type. To use this class, call the function
+    params are present and have the correct example_tyres type. To use this class, call the function
     `TIRValidation.validate_with_model(tyre)`, where `tyre` is a dictionary containing the tyre parameters.
     """
 
-    # check all the data
-    UNITS:                      UnitsSection
+    # check all the example_tyres
+    try:
+        UNITS: UnitsSection
+    except:
+        raise KeyError("UNITS section not found.")
     MODEL:                      ModelSection
     DIMENSION:                  DimensionSection
     OPERATING_CONDITIONS:       OperatingConditionsSection
     INERTIA:                    InertiaSection
     VERTICAL:                   VerticalSection
     STRUCTURAL:                 StructuralSection
-    CONTACT_PATCH:              ContactPatchSection
+    try:
+        CONTACT_PATCH: ContactPatchSection
+    except:
+        raise KeyError("CONTACT PATCH section not found.")
     INFLATION_PRESSURE_RANGE:   InflationSection
     VERTICAL_FORCE_RANGE:       VerticalForceSection
     LONG_SLIP_RANGE:            LongSlipSection
@@ -312,10 +391,10 @@ class TIRValidation(BaseModel):
     @classmethod
     def validate_with_model(cls, data: dict):
         """
-        Call this function to validate the data from the tyre model. Written by ChatGPT.
+        Call this function to validate the example_tyres from the tyre model. Written by ChatGPT.
 
         :param data: dictionary containing the TIR file parameters.
-        :return: validated data.
+        :return: validated example_tyres.
         """
 
         bootstrap = ModelBootstrap.model_validate(data["MODEL"])

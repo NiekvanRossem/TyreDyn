@@ -65,7 +65,7 @@ class MF61(MF6xBase):
             **kwargs
     ) -> list[SignalLike]:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, N, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=N, P=P, IA=0.0, VX=None, PHIT=0.0,
                                            angle_unit="rad")

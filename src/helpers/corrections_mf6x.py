@@ -107,7 +107,7 @@ class CorrectionsMF6x:
         # _normalize load
         dfz = self._normalize._find_dfz(FZ)
 
-        # singularity-protected speed
+        # singularity-protected speed # TODO: MFeval uses VC_prime = V
         VC_prime = self._find_vc_prime(VC)
 
         # find the total spin velocity (4.75)
@@ -127,6 +127,9 @@ class CorrectionsMF6x:
         """Returns the singularity-protected contact patch speed."""
 
         # corrected wheel center speed (4.E6a)
-        VC_prime = VC + self._eps_V
+        VC_sign = self.normalize._replace_value(np.sign(VC), target_sig=VC, target_val=0.0, new_val=1.0)
+        VC_prime = VC + self._eps_V * VC_sign
+
+        # NOTE: the book
 
         return VC_prime

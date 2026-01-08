@@ -70,9 +70,9 @@ class MF62(MF6xBase):
             tolx: float = 1e-6
     ) -> list[SignalLike]:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, N, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=None, PHIT=0.0, angle_unit="rad")
 
-        return self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P, IA=IA, maxiter=maxiter, tolx=tolx)
+        return self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P, maxiter=maxiter, tolx=tolx)
 

@@ -164,7 +164,7 @@ class MomentsMF6x:
             zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2)
             zeta_6 = self.turn_slip._find_zeta_6(PHI)
             zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
-            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI)
+            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT)
         else:
             zeta_0 = self.zeta_default
             zeta_2 = self.zeta_default
@@ -349,7 +349,7 @@ class MomentsMF6x:
                                                  zeta_2=zeta_2)
             zeta_6 = self.turn_slip._find_zeta_6(PHIT)
             zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
-            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI)
+            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT)
         else:
             zeta_0 = self.zeta_default
             zeta_2 = self.zeta_default
@@ -456,6 +456,10 @@ class MomentsMF6x:
                                        + self.QSX10 * self.atan(self.QSX11 * (FZ / FZ0)) * IA) + R0 * self.LMX
                   * (FY * (self.QSX13 + self.QSX14 * np.abs(IA)) - FZ * self.QSX12 * IA * np.abs(IA)))
 
+        # correct MX for low FZ values (empirically discovered by Marco Furlan)
+        corr = FZ * (FZ / self.FZMIN) ** 2
+        MX = self.normalize._correct_signal(MX, correction_factor=corr, helper_sig=FZ, threshold=self.FZMIN, method="<")
+
         return MX
 
     def __my_main_routine(
@@ -485,6 +489,30 @@ class MomentsMF6x:
         # MY = (FZ * R0 * (self.QSY1 + self.QSY2 * (FX / FZ0) + self.QSY3 * np.abs(VCX / V0) + self.QSY4 * (VCX / V0) ** 4
         #                 + (self.QSY5 + self.QSY6 * (FZ / FZ0)) * IA ** 2)
         #       * ((FZ / FZ0) ** self.QSY7 * (P / P0) ** self.QSY8) * self.LMY)
+
+        # flip sign for negative speeds -- VCX = VX
+        MY = self.normalize._flip_negative(MY, helper_sig=VCX)
+
+        # low speed correction (empirically discovered by Marco Furlan)
+        limit_high = self.VXLOW / VCX - 1.0
+        limit_low  = - 1.0 - self.VXLOW - limit_high
+        idx = np.where(SL >= limit_low & SL <= limit_high)
+        if len(idx) > 0: # TODO: check if this works
+            x0 = -1.0 * np.ones_like(idx)
+            y0 = np.zeros_like(idx)
+            x1 = limit_high[idx]
+            y1 = np.pi / 2 * np.ones_like(idx)
+            speed_correction = self.__interpolate(x0=x0, y0=y0, x1=x1, y1=y1, x=SL)
+            MY[idx] = MY[idx] * np.sin(speed_correction)
+
+        # apply correction for slip ratio below the lower limit
+        #idx = np.where(SL < limit_low)
+        #MY[idx] = - MY[idx]
+        MY = self.normalize._flip_negative(MY, helper_sig=(limit_low - SL))
+
+        # apply correction for low FZ
+        fz_correction = FZ ** 2 / self.FZMIN
+        MY = self.normalize._correct_signal(MY, correction_factor=fz_correction, helper_sig=FZ, threshold=self.FZMIN, method="<")
 
         return MY
 
@@ -526,18 +554,23 @@ class MomentsMF6x:
         LMUY_star  = self.correction._find_lmu_star(VS=VS, V0=V0, LMU=self.LMUY)
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
-        # cornering and camber stiffness
+        # cornering stiffness
         KYA  = self.gradient._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, VX=VX)
-        KYCO = self.gradient._find_camber_stiffness(FZ=FZ, P=P)
+        KYA_sign = self.normalize._replace_value(np.sign(KYA), target_sig=KYA, target_val=0.0, new_val=1.0)
 
         # corrected cornering stiffness (4.E39)
-        KYA_prime = KYA + self._eps_kappa * np.sign(KYA)
+        KYA_prime = KYA + self._eps_kappa * KYA_sign
+
+        # camber stiffness
+        KYCO = self.gradient._find_camber_stiffness(FZ=FZ, P=P)
 
         # vertical shift for side force (4.E29)
-        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime, zeta_2=zeta_2)
+        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, VX=VX, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime,
+                                             zeta_2=zeta_2)
 
         # horizontal shift (4.E27)
-        S_HY = self.common._find_s_hy(dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg, zeta_0=zeta_0, zeta_4=zeta_4)
+        S_HY = self.common._find_s_hy(VX=VX, dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg,
+                                      zeta_0=zeta_0, zeta_4=zeta_4)
 
         # horizontal shift for residual couple (4.E38)
         S_HF = S_HY + S_VY / KYA_prime
@@ -598,3 +631,38 @@ class MomentsMF6x:
         MZR = DR * self.cos(CR * self.atan(BR * alpha_used)) * cos_prime_alpha
 
         return MZR
+
+    @staticmethod
+    def __interpolate(
+            *,
+            x0 : SignalLike,
+            y0 : SignalLike,
+            x1 : SignalLike,
+            y1 : SignalLike,
+            x  : SignalLike,
+    ) -> SignalLike:
+        """
+        Interpolates a signal.
+
+        Parameters
+        ----------
+        *
+        x0 : SignalLike
+            Lower independent value
+        y0 : SignalLike
+            Lower dependent value
+        x1 : SignalLike
+            Higher independent value
+        y1 : SignalLike
+            Higher dependent value
+        x : SignalLike
+            Interpolation point
+
+        Returns
+        -------
+        y : SignalLike
+            Interpolated value
+        """
+
+        y = (y0 * (x1 - x) * y1 * (x - x0)) / (x1 - x0)
+        return y

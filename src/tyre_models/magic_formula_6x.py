@@ -61,8 +61,9 @@ class MF6xBase(TyreBase):
         # scaling factor to control decaying friction with increasing speed (set to zero generally)
         self._LMUV = 0.0
 
-        # low friction correction for friction coefficient scaling factor, set to 10 as suggested by Pacejka (4.E8)
-        self._A_mu = 10.0
+        # low friction correction for friction coefficient scaling factor, The book by Pacejka & Besselink recommends
+        # setting this value to 10.0 (4.E8), but a value of 1.0 matches the TNO solver (via Marco Furlan)
+        self._A_mu = 1.0
 
         # import helper functions
         self.normalize = Normalize(self)
@@ -127,7 +128,7 @@ class MF6xBase(TyreBase):
             Force vector.
         """
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT, angle_unit=angle_unit)
 
@@ -179,7 +180,7 @@ class MF6xBase(TyreBase):
             Moment vector.
         """
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -233,7 +234,7 @@ class MF6xBase(TyreBase):
             Force and moment vector.
         """
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -289,7 +290,7 @@ class MF6xBase(TyreBase):
             Lateral output vector.
         """
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, _, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -297,7 +298,7 @@ class MF6xBase(TyreBase):
         FY = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         MX = self.moments._find_mx_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         MZ = self.moments._find_mz_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
-        _, _, RL, _ = self.radius._find_radius(FX=0.0, FY=FY, FZ=FZ, N=N, P=P)
+        _, _, RL, _ = self.radius._find_radius(FX=0.0, FY=FY, FZ=FZ, N=N, P=P, maxiter=maxiter, tolx=tolx)
         sigma_y = self.relaxation._find_lateral_relaxation(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         return [FY, MX, MZ, RL, sigma_y]
 
@@ -339,14 +340,14 @@ class MF6xBase(TyreBase):
             Longitudinal output vector.
         """
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=0.0, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=0.0,
                                                     angle_unit=angle_unit)
 
         FX = self.forces._find_fx_pure(SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=0.0)
         MY = self.moments._find_my_pure(SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
-        _, RE, RL, _ = self.radius._find_radius(FX=FX, FY=0.0, FZ=FZ, N=N, P=P)
+        _, RE, RL, _ = self.radius._find_radius(FX=FX, FY=0.0, FZ=FZ, N=N, P=P, maxiter=maxiter, tolx=tolx)
         sigma_x = self.relaxation._find_longitudinal_relaxation(FZ=FZ, P=P)
         return [FX, MY, RL, RE, sigma_x]
 
@@ -361,7 +362,9 @@ class MF6xBase(TyreBase):
             IA:   SignalLike = 0.0,
             VX:   SignalLike = None,
             PHIT: SignalLike = 0.0,
-            angle_unit: AngleUnit = "rad"
+            angle_unit: AngleUnit = "rad",
+            maxiter: int = 30,
+            tolx: float = 1e-6
     ) -> list[SignalLike]:
         """
         Finds the full output state of the tyre. Not recommended to use this in performance-sensitive vehicle
@@ -394,7 +397,7 @@ class MF6xBase(TyreBase):
             Full output state.
         """
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -408,11 +411,10 @@ class MF6xBase(TyreBase):
             PHI = self.correction._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
-            zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
-                                                 zeta_2=zeta_2)
+            zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2)
             zeta_6 = self.turn_slip._find_zeta_6(PHI)
             zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
-            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHI=PHI)
+            zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT)
         else:
             zeta_0 = self._zeta_default
             zeta_2 = self._zeta_default
@@ -435,7 +437,7 @@ class MF6xBase(TyreBase):
                                             zeta_0=zeta_0, zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7,
                                             zeta_8=zeta_8, combined_slip=True)
 
-        R_omega, RE, RL, rho = self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
+        R_omega, RE, RL, rho = self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P, maxiter=maxiter, tolx=tolx)
 
         # pneumatic trail
         t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
@@ -505,7 +507,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=0.0, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -526,7 +528,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -548,7 +550,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -570,7 +572,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -594,7 +596,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, _, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -613,7 +615,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, SL, FZ, _, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=0.0, SL=SL, FZ=FZ, N=0.0, P=P, IA=IA, VX=VX, PHIT=0.0,
                                                     angle_unit=angle_unit)
@@ -634,7 +636,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, _, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -656,7 +658,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -678,7 +680,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -700,7 +702,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -740,7 +742,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, _, P, IA, VX, _,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=0.0, P=P, IA=IA, VX=VX, PHIT=0.0,
                                                     angle_unit=angle_unit)
@@ -760,7 +762,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, _, P, IA, VX, _,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=0.0, P=P, IA=IA, VX=VX, PHIT=0.0,
                                                     angle_unit=angle_unit)
@@ -778,7 +780,7 @@ class MF6xBase(TyreBase):
             P:  SignalLike = None
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, _, P, _, _, _,
          angle_unit) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=0.0, P=P, IA=0.0, VX=None, PHIT=0.0,
                                                     angle_unit="rad")
@@ -793,7 +795,7 @@ class MF6xBase(TyreBase):
             P:  SignalLike = None
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, _, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=0.0, P=P, IA=0.0, VX=None, PHIT=0.0,
                                            angle_unit="rad")
@@ -806,7 +808,7 @@ class MF6xBase(TyreBase):
             P: SignalLike
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, _, _, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=self.FNOMIN, N=0.0, P=P, IA=0.0, VX=self.LONGVL, PHIT=0.0,
                                            angle_unit="rad")
@@ -824,7 +826,7 @@ class MF6xBase(TyreBase):
             P:  SignalLike = None
     ) -> list[SignalLike]:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, _, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=0.0, P=P, IA=0.0, VX=None, PHIT=0.0,
                                            angle_unit="rad")
@@ -848,7 +850,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, _, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -870,7 +872,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -895,7 +897,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -910,7 +912,7 @@ class MF6xBase(TyreBase):
             P:  SignalLike = None
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, _, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=0.0, P=P, IA=0.0, VX=None, PHIT=0.0,
                                            angle_unit="rad")
@@ -925,7 +927,7 @@ class MF6xBase(TyreBase):
             P:  SignalLike = None
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, _, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=0.0, P=P, IA=0.0, VX=None, PHIT=0.0,
                                            angle_unit="rad")
@@ -941,7 +943,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, _, _, _, _, _, _, _,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=self.FNOMIN, N=0.0, P=self.INFLPRES, IA=0.0,
                                                     VX=None, PHIT=0.0, angle_unit=angle_unit)
@@ -955,7 +957,7 @@ class MF6xBase(TyreBase):
             FX: SignalLike
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, SL, _, _, _, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=SL, FZ=self.FNOMIN, N=0.0, P=self.INFLPRES, IA=0.0, VX=None,
                                            PHIT=0.0, angle_unit="rad")
@@ -980,7 +982,7 @@ class MF6xBase(TyreBase):
             angle_unit: AngleUnit = "rad"
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (SA, SL, FZ, N, P, IA, VX, PHIT,
          angle_unit) = self.common._preprocess_data(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
                                                     angle_unit=angle_unit)
@@ -995,7 +997,7 @@ class MF6xBase(TyreBase):
             P:  SignalLike = None
     ) -> SignalLike:
 
-        # pre-process the input data
+        # pre-process the input example_tyres
         (_, _, FZ, _, P, _, _, _,
          _) = self.common._preprocess_data(SA=0.0, SL=0.0, FZ=FZ, N=0.0, P=P, IA=0.0, VX=self.LONGVL, PHIT=0.0,
                                            angle_unit="rad")

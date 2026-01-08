@@ -139,12 +139,15 @@ class TrailMF6x:
         # find coefficients
         BT, CT, DT, ET, alpha_t = self.__trail_main_routine(SA=SA, FZ=FZ, P=P, IA=IA, VCX=VCX, VS=VS, zeta_5=zeta_5)
 
-        # slip stiffness
+        # cornering stiffness
         KYA = self.gradient._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, VX=VX)
+        KYA_sign = self.normalize._replace_value(np.sign(KYA), target_sig=KYA, target_val=0.0, new_val=1.0)
+
+        # slip stiffness
         KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
 
         # corrected cornering stiffness (4.E39)
-        KYA_prime = KYA + self._eps_kappa * np.sign(KYA)
+        KYA_prime = KYA + self._eps_kappa * KYA_sign
 
         # corrected slip angle (A55)
         alpha_t_eq = self.atan(np.sqrt(self.tan(alpha_t) ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2)) * np.sign(alpha_t)

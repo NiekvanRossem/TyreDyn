@@ -1,0 +1,26 @@
+[project]
+name = "TyreDyn"
+description = "Open source tyre modelling library for Python"
+dynamic = ["version"]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["Magic Formula", "Pacejka", "Tyre model", "Vehicle Dynamics", "Automotive"]
+authors = [{name = "Niek_van_Rossem"}]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Development Status :: 1 - Alpha"
+]
+dependencies = ["numpy>=1.21.0"]
+
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+
+[project.urls]
+Homepage = ""
+Repository = "https://github.com/NiekvanRossem/TyreDyn"

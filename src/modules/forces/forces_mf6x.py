@@ -90,8 +90,16 @@ class ForcesMF6x:
         # horizontal shift (4.E17)
         S_HX = (self.PHX1 + self.PHX2 * dfz) * self.LHX
 
+        # low speed correction
+        S_HX = self.normalize._correct_signal(S_HX, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
+                                              threshold=self.VXLOW, method="<")
+
         # vertical shift (4.E18)
         S_VX = FZ * (self.PVX1 + self.PVX2 * dfz) * self.LVX * LMUX_prime * zeta_1
+
+        # low speed correction
+        S_VX = self.normalize._correct_signal(S_VX, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
+                                              threshold=self.VXLOW, method="<")
 
         # corrected slip ratio (4.E10)
         kappa_x = SL + S_HX
@@ -116,6 +124,9 @@ class ForcesMF6x:
 
         # Longitudinal force (4.E9) -- slip ratio trig functions do not get corrected to degrees
         FX0 = DX * np.sin(CX * self.atan(BX * kappa_x - EX * (BX * kappa_x - np.atan2(BX * kappa_x, 1)))) + S_VX
+
+        # flip sign for negative speeds (only if alpha_star is used)
+        FX0 = self.normalize._flip_negative(FX0, helper_sig=VX) if self._use_alpha_star else FX0
 
         return FX0
 
@@ -278,10 +289,12 @@ class ForcesMF6x:
         KYCO = self.gradient._find_camber_stiffness(FZ=FZ, P=P)
 
         # vertical shifts (4.E29)
-        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime, zeta_2=zeta_2)
+        S_VY, S_VYg = self.common._find_s_vy(FZ=FZ, VX=VX, dfz=dfz, gamma_star=gamma_star, LMUY_prime=LMUY_prime,
+                                             zeta_2=zeta_2)
 
         # horizontal shift (4.E27)
-        S_HY = self.common._find_s_hy(dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg, zeta_0=zeta_0, zeta_4=zeta_4)
+        S_HY = self.common._find_s_hy(VX=VX, dfz=dfz, KYA=KYA, KYCO=KYCO, gamma_star=gamma_star, S_VYg=S_VYg,
+                                      zeta_0=zeta_0, zeta_4=zeta_4)
 
         # corrected slip angle (4.E20)
         alpha_y = alpha_star + S_HY
@@ -303,9 +316,12 @@ class ForcesMF6x:
         BY = self.common._find_by(FZ=FZ, KYA=KYA, CY=CY, DY=DY)
 
         # lateral force (4.E19)
-        FY = DY * self.sin(CY * self.atan(BY * alpha_y - EY * (BY * alpha_y - self.atan(BY * alpha_y)))) + S_VY
+        FY0 = DY * self.sin(CY * self.atan(BY * alpha_y - EY * (BY * alpha_y - self.atan(BY * alpha_y)))) + S_VY
 
-        return FY
+        # flip sign for negative speeds (only if alpha_star is used)
+        FY0 = self.normalize._flip_negative(FY0, helper_sig=VX) if self._use_alpha_star else FY0
+
+        return FY0
 
     def _find_fy_combined(
             self,
