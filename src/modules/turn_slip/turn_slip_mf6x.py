@@ -135,7 +135,8 @@ class TurnSlipMF6x:
         CHYP = self.PHYP1
 
         # peak factor (4.86)
-        DHYP = (self.PHYP2 + self.PHYP3 * dfz) * np.sign(VCX)
+        VCX_sign = self.normalize._replace_value(np.sign(VCX), target_sig=VCX, target_val=0.0, new_val=1.0)
+        DHYP = (self.PHYP2 + self.PHYP3 * dfz) * VCX_sign
 
         # curvature factor (4.87)
         EHYP = self.PHYP4

@@ -112,7 +112,7 @@ class MomentsMF6x:
         FX0 = self.forces._find_fx_pure(SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHI)
 
         # find rolling resistance moment
-        MY = self.__my_main_routine(FX=FX0, FZ=FZ, P=P, IA=IA, VCX=VCX)
+        MY = self.__my_main_routine(SL=SL, FX=FX0, FZ=FZ, P=P, IA=IA, VCX=VCX)
         return MY
 
     def _find_mz_pure(
@@ -289,7 +289,7 @@ class MomentsMF6x:
         FX = self.forces._find_fx_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # find rolling resistance moment
-        MY = self.__my_main_routine(FX=FX, FZ=FZ, P=P, IA=IA, VCX=VCX)
+        MY = self.__my_main_routine(SL=SL, FX=FX, FZ=FZ, P=P, IA=IA, VCX=VCX)
         return MY
 
     def _find_mz_combined(
@@ -458,13 +458,15 @@ class MomentsMF6x:
 
         # correct MX for low FZ values (empirically discovered by Marco Furlan)
         corr = FZ * (FZ / self.FZMIN) ** 2
-        MX = self.normalize._correct_signal(MX, correction_factor=corr, helper_sig=FZ, threshold=self.FZMIN, method="<")
+        MX = self.normalize._correct_signal(MX, correction_factor=corr, helper_sig=FZ, threshold=self.FZMIN,
+                                            condition="<")
 
         return MX
 
     def __my_main_routine(
             self,
             *,
+            SL:  SignalLike,
             FX:  SignalLike,
             FZ:  SignalLike,
             P:   SignalLike,
@@ -493,17 +495,20 @@ class MomentsMF6x:
         # flip sign for negative speeds -- VCX = VX
         MY = self.normalize._flip_negative(MY, helper_sig=VCX)
 
-        # low speed correction (empirically discovered by Marco Furlan)
-        limit_high = self.VXLOW / VCX - 1.0
+        # low speed correction (empirically discovered by Marco Furlan, modified by Niek van Rossem)
+        VCX_prime = self.correction._find_vc_prime(VC=VCX)
+        limit_high = self.VXLOW / VCX_prime - 1.0
         limit_low  = - 1.0 - self.VXLOW - limit_high
-        idx = np.where(SL >= limit_low & SL <= limit_high)
-        if len(idx) > 0: # TODO: check if this works
+        #idx = np.where(SL >= limit_low & SL <= limit_high)
+        idx = np.logical_and(self.normalize._find_in_signal(SL, condition="<=", threshold=limit_high),
+                             self.normalize._find_in_signal(SL, condition=">=", threshold=limit_low))
+        if isinstance(idx, np.ndarray) or (isinstance(idx, bool) and idx is True):
             x0 = -1.0 * np.ones_like(idx)
             y0 = np.zeros_like(idx)
             x1 = limit_high[idx]
             y1 = np.pi / 2 * np.ones_like(idx)
             speed_correction = self.__interpolate(x0=x0, y0=y0, x1=x1, y1=y1, x=SL)
-            MY[idx] = MY[idx] * np.sin(speed_correction)
+            MY[idx] *= np.sin(speed_correction)
 
         # apply correction for slip ratio below the lower limit
         #idx = np.where(SL < limit_low)
@@ -512,7 +517,8 @@ class MomentsMF6x:
 
         # apply correction for low FZ
         fz_correction = FZ ** 2 / self.FZMIN
-        MY = self.normalize._correct_signal(MY, correction_factor=fz_correction, helper_sig=FZ, threshold=self.FZMIN, method="<")
+        MY = self.normalize._correct_signal(MY, correction_factor=fz_correction, helper_sig=FZ, threshold=self.FZMIN,
+                                            condition="<")
 
         return MY
 

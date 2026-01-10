@@ -197,20 +197,20 @@ if __name__ == "__main__":
         use_mfeval_mode = False)
 
     # input state
-    #SA = 16.5
-    #SL = 0.55
-    #FZ = 4500
-    #P = 1.8e5
-    #IA = -3.1
-    #VX = 200 / 3.6
-    #PHIT = 0.1
-    SA = 0.0
-    SL = 0.0
-    FZ = -100.0
+    SA = 16.5
+    SL = 0.55
+    FZ = 4500
     P = 1.8e5
-    IA = 0.0
+    IA = -3.1
     VX = 200 / 3.6
-    PHIT = 0.0
+    PHIT = 0.1
+    #SA = 0.0
+    #SL = 0.0
+    #FZ = -100.0
+    #P = 1.8e5
+    #IA = 0.0
+    #VX = 200 / 3.6
+    #PHIT = 0.0
 
     [FX, FY, FZ,
      MX, MY, MZ,

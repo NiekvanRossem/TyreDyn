@@ -119,25 +119,27 @@ class CommonMF6x:
         P  = self.INFLPRES if P is None else P
         VX = self.LONGVL if VX is None else VX
 
-        # smooth reduction factor
-        self.smooth_reduction = 1.0 - 0.5 * (1.0 + np.cos(np.pi * VX / self.VXLOW))
-
         # low speed correction for slip ratio and turn slip
-        idx = np.where(VX < self.VXLOW)
-        linear_correction = np.abs(VX[idx] / self.VXLOW)
-        PHIT[idx] *= linear_correction
-        SL[idx]   *= linear_correction
+        #idx = np.where(VX < self.VXLOW)
+        linear_correction = np.abs(VX / self.VXLOW)
+        PHIT = self.normalize._correct_signal(PHIT, correction_factor=linear_correction, helper_sig=VX, condition="<", threshold=self.VXLOW)
+        SL   = self.normalize._correct_signal(SL,   correction_factor=linear_correction, helper_sig=VX, condition="<", threshold=self.VXLOW)
+        #idx = self.normalize._find_in_signal(VX, condition = "<", threshold = self.VXLOW)
+
+        #PHIT[idx] *= linear_correction
+        #SL[idx]   *= linear_correction
 
         # lateral slip speed (2.12)
         VSY = VX * self.tan(SA)
 
         # low speed correction for slip angle
         speed_sum = np.abs(VX) + np.abs(VSY)
-        idx = np.where(speed_sum < self.VXLOW)
-        alpha_correction = speed_sum[idx] / self.VXLOW
-        SA[idx] *= alpha_correction
+        alpha_correction = speed_sum / self.VXLOW
+        SA = self.normalize._correct_signal(SA, correction_factor=alpha_correction, helper_sig=speed_sum, condition="<", threshold=self.VXLOW)
+        #idx = np.where(speed_sum < self.VXLOW)
+        #SA[idx] *= alpha_correction
 
-        # correct turn slip (empirically discovered by Marco Furlan) TODO: only for turn slip?
+        # correct turn slip (empirically discovered by Marco Furlan) TODO: only used for the turn slip module?
         PHIT = PHIT * self.cos(SA) if SA is not None else PHIT
 
         # flip the sign of the turn slip for negative speeds
@@ -164,6 +166,8 @@ class CommonMF6x:
 
     #------------------------------------------------------------------------------------------------------------------#
     # COMMONLY USED PARAMETERS
+
+
 
     def _find_by(
             self,
@@ -296,8 +300,8 @@ class CommonMF6x:
                 / (KYA + self._eps_kappa) * zeta_0 + zeta_4 - 1.0)
 
         # low speed correction
-        S_HY = self.normalize._correct_signal(S_HY, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
-                                              threshold=self.VXLOW, method="<")
+        smooth_reduction = self.correction._find_smooth_reduction(VX)
+        S_HY = self.normalize._correct_signal(S_HY, correction_factor=smooth_reduction, helper_sig=np.abs(VX), threshold=self.VXLOW, condition="<")
 
         return S_HY
 
@@ -320,8 +324,8 @@ class CommonMF6x:
         S_VY = FZ * (self.PVY1 + self.PVY2 * dfz) * self.LVY * LMUY_prime * zeta_2 + S_VYg
 
         # low speed correction
-        S_VY = self.normalize._correct_signal(S_VY, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
-                                              threshold=self.VXLOW, method="<")
+        smooth_reduction = self.correction._find_smooth_reduction(VX)
+        S_VY = self.normalize._correct_signal(S_VY, correction_factor=smooth_reduction, helper_sig=np.abs(VX), threshold=self.VXLOW, condition="<")
 
         return S_VY, S_VYg
 

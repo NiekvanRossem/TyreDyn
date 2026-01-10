@@ -130,6 +130,15 @@ class CorrectionsMF6x:
         VC_sign = self.normalize._replace_value(np.sign(VC), target_sig=VC, target_val=0.0, new_val=1.0)
         VC_prime = VC + self._eps_V * VC_sign
 
-        # NOTE: the book
+        # NOTE: the book .... ???
 
         return VC_prime
+
+    def _find_smooth_reduction(
+            self,
+            VX : SignalLike
+    ) -> SignalLike:
+
+        # smooth reduction factor for low speed correction
+        smooth_reduction = 1.0 - 0.5 * (1.0 + np.cos(np.pi * VX / self.VXLOW))
+        return smooth_reduction

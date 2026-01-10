@@ -292,8 +292,7 @@ class MF6xBase(TyreBase):
 
         # pre-process the input example_tyres
         (SA, _, FZ, N, P, IA, VX, PHIT,
-         angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT,
-                                                    angle_unit=angle_unit)
+         angle_unit) = self.common._preprocess_data(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT, angle_unit=angle_unit)
 
         FY = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         MX = self.moments._find_mx_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
@@ -342,8 +341,7 @@ class MF6xBase(TyreBase):
 
         # pre-process the input example_tyres
         (_, SL, FZ, N, P, IA, VX, PHIT,
-         angle_unit) = self.common._preprocess_data(SA=0.0, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=0.0,
-                                                    angle_unit=angle_unit)
+         angle_unit) = self.common._preprocess_data(SA=0.0, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=0.0, angle_unit=angle_unit)
 
         FX = self.forces._find_fx_pure(SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=0.0)
         MY = self.moments._find_my_pure(SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
@@ -416,12 +414,7 @@ class MF6xBase(TyreBase):
             zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
             zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT)
         else:
-            zeta_0 = self._zeta_default
-            zeta_2 = self._zeta_default
-            zeta_4 = self._zeta_default
-            zeta_6 = self._zeta_default
-            zeta_7 = self._zeta_default
-            zeta_8 = self._zeta_default
+            zeta_0, zeta_2, zeta_4, zeta_6, zeta_7, zeta_8 = 6 * [self._zeta_default]
 
         # find planar forces
         FX = self.forces._find_fx_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX)
@@ -476,17 +469,17 @@ class MF6xBase(TyreBase):
 
             # more organized output vector
             output = [
-                FX, FY, FZ,  # FORCES
-                MX, MY, MZ,  # MOMENTS
-                SL, SA, IA, PHIT, VX, P, N,  # INPUT STATE
-                R_omega, RE, rho, RL,  # RADII
-                2 * a, 2 * b,  # CONTACT PATCH
-                t,  # TRAIL
-                mu_x, mu_y,  # FRICTION COEFFICIENT
-                MZR,  # RESIDUAL MOMENT
-                Cx, Cy, Cz,  # TYRE STIFFNESS
-                KYA, iKYA, KXK, iKXK,  # SLIP STIFFNESS
-                sigma_x, sigma_y  # RELAXATION LENGTHS
+                FX, FY, FZ,                 # FORCES
+                MX, MY, MZ,                 # MOMENTS
+                SL, SA, IA, PHIT, VX, P, N, # INPUT STATE
+                R_omega, RE, rho, RL,       # RADII
+                2 * a, 2 * b,               # CONTACT PATCH
+                t,                          # TRAIL
+                mu_x, mu_y,                 # FRICTION COEFFICIENT
+                MZR,                        # RESIDUAL MOMENT
+                Cx, Cy, Cz,                 # TYRE STIFFNESS
+                KYA, iKYA, KXK, iKXK,       # SLIP STIFFNESS
+                sigma_x, sigma_y            # RELAXATION LENGTHS
             ]
         return output
 

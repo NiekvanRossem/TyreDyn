@@ -91,15 +91,15 @@ class ForcesMF6x:
         S_HX = (self.PHX1 + self.PHX2 * dfz) * self.LHX
 
         # low speed correction
-        S_HX = self.normalize._correct_signal(S_HX, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
-                                              threshold=self.VXLOW, method="<")
+        smooth_reduction = self.correction._find_smooth_reduction(VX)
+        S_HX = self.normalize._correct_signal(S_HX, correction_factor=smooth_reduction, helper_sig=np.abs(VX), threshold=self.VXLOW, condition="<")
 
         # vertical shift (4.E18)
         S_VX = FZ * (self.PVX1 + self.PVX2 * dfz) * self.LVX * LMUX_prime * zeta_1
 
         # low speed correction
-        S_VX = self.normalize._correct_signal(S_VX, correction_factor=self.smooth_correction, helper_sig=np.abs(VX),
-                                              threshold=self.VXLOW, method="<")
+        smooth_reduction = self.correction._find_smooth_reduction(VX)
+        S_VX = self.normalize._correct_signal(S_VX, correction_factor=smooth_reduction, helper_sig=np.abs(VX), threshold=self.VXLOW, condition="<")
 
         # corrected slip ratio (4.E10)
         kappa_x = SL + S_HX
