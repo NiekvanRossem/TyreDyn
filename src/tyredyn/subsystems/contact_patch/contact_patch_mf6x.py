@@ -1,0 +1,55 @@
+from tyredyn.types.aliases import SignalLike
+import numpy as np
+
+class ContactPatchMF6x:
+    """
+    Contact patch module for the MF 6.1 and MF 6.2 tyre models.
+    """
+
+    def __init__(self, model):
+        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
+        self._model = model
+
+        # other subsystems
+        self.stiffness = model.stiffness
+
+    def __getattr__(self, name):
+        """Make the tyre coefficients directly available."""
+        return getattr(self._model, name)
+
+    def _find_contact_patch(
+            self,
+            *,
+            FZ: SignalLike,
+            P:  SignalLike = None
+    ) -> list[SignalLike]:
+        """
+        Finds the contact patch dimensions.
+
+        Parameters
+        ----------
+        FZ : SignalLike
+            Vertical load.
+        P : SignalLike, optional
+            Tyre pressure (will default to ``INFLPRES`` if not specified).
+
+        Returns
+        -------
+        a, b : list[SignalLike]
+            Contact patch length and width.
+        """
+
+        # unpack tyre parameters
+        R0 = self.UNLOADED_RADIUS
+        W  = self.WIDTH
+
+        # vertical stiffness
+        CZ = self.stiffness._find_vertical_stiffness(P)
+
+        # length (A3.7)
+        a = R0 * (self.Q_RA2 * FZ / (CZ * R0) + self.Q_RA1 * np.sqrt(FZ / (CZ * R0)))
+
+        # half width (A3.8)
+        b = W * (self.Q_RB2 * FZ / (CZ * R0) + self.Q_RB1 * (FZ / (CZ * R0)) ** (1/3))
+
+        return [a, b]

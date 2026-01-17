@@ -1,7 +1,8 @@
 # private folders
 /archive
-/notebooks_private/
+/examples_private/
 /test_scripts
+/doc_private/
 
 # Python-generated files
 __pycache__/
@@ -19,3 +20,4 @@ env/
 # VS code config
 .vscode/
 /.idea
+

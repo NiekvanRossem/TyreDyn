@@ -1,0 +1,122 @@
+from tyredyn.types.operator_map import _OPS
+from tyredyn.types.aliases import SignalLike, NumberLike
+from typing import Literal, Union
+import numpy as np
+
+class Signals:
+    """Module containing the functions to modify signals."""
+
+    def __init__(self, model):
+        """Make the properties of the overarching ``MF61`` class and other subsystems available."""
+        self._model = model
+
+    def __getattr__(self, name):
+        """Make the tyre coefficients directly available."""
+        return getattr(self._model, name)
+
+    def _correct_signal(
+            self,
+            sig_in: SignalLike,
+            *,
+            correction_factor: SignalLike,
+            helper_sig: SignalLike,
+            threshold: NumberLike,
+            condition: Literal["<", ">", "==", "!=", "<=", ">="]
+    ) -> SignalLike:
+        """
+        Multiplies the input signal with the correction factor, on the indices where the helper signal matches a
+        specified condition .
+        """
+
+        # if helper_sig is a single number, and sig_in is not
+        if isinstance(helper_sig, NumberLike) and not isinstance(sig_in, NumberLike):
+            helper_sig *= np.ones_like(sig_in)
+
+        # if sig_in is a single number, and helper_sig is not
+        elif not isinstance(helper_sig, NumberLike) and isinstance(sig_in, NumberLike):
+            sig_in *= np.ones_like(helper_sig)
+
+        # if the correction factor is a single number, and sig_in is not
+        if isinstance(correction_factor, NumberLike) and not isinstance(sig_in, NumberLike):
+            correction_factor *= np.ones_like(sig_in)
+
+        # find indices
+        idx = self._find_in_signal(helper_sig, condition=condition, threshold=threshold)
+
+        # apply correction factor
+        array = np.asarray(sig_in)
+        if array.ndim == 0:
+            sig_in *= correction_factor if idx is True else 1.0
+        else:
+            sig_in[idx] *= correction_factor[idx]
+        return sig_in
+
+    @staticmethod
+    def _find_in_signal(
+            sig_in: SignalLike,
+            *,
+            condition: Literal["<", ">", "=", "<=", ">="],
+            threshold = 1.0
+    ) -> SignalLike:
+        """Returns a boolean array where the value is set to ``True`` if the signal value matches a certain condition."""
+
+        array = np.asarray(sig_in)
+
+        try:
+            op = _OPS[condition]
+        except KeyError:
+            raise ValueError(f"Unknown condition: {condition}")
+
+        result = op(array, threshold)
+
+        if result.ndim == 0:
+            return bool(result)
+        else:
+            return result
+
+    def _flip_negative(
+            self,
+            sig_in: SignalLike,
+            *,
+            helper_sig: SignalLike
+    ) -> SignalLike:
+        """Flips the sign of ``sig_in`` on the places where ``helper_sig`` is negative."""
+
+        # find indices where the target signal is negative
+        idx = self._find_in_signal(helper_sig, condition="<", threshold=0.0)
+
+        # flip sign of sig
+        if np.asarray(sig_in).ndim == 0:
+            sig_in = - sig_in if idx is True else sig_in
+        else:
+            sig_in[idx] = - sig_in[idx]
+        return sig_in
+
+    @staticmethod
+    def _replace_value(
+            sig_in:     SignalLike,
+            *,
+            target_sig: SignalLike,
+            target_val: Union[float, int],
+            new_val:    Union[float, int],
+    ) -> SignalLike:
+        """
+        Replaces the values of ``sig_in`` with ``new_val``, on the indices where ``target_sig`` matches
+        ``target_val``.
+        """
+
+        # TODO: make improvements by using code similar to _find_in_signal
+
+        # for numpy arrays
+        if isinstance(sig_in, np.ndarray):
+            sig_in[target_sig == target_val] = new_val
+
+        # for lists
+        elif isinstance(sig_in, list):
+            sig_in = [new_val if v == target_val else sig_in[v] for v in target_sig]
+
+        # for single values
+        else:
+            sig_in = new_val if target_sig == target_val else sig_in
+
+        return sig_in
