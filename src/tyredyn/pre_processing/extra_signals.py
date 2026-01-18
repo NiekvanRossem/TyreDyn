@@ -1,18 +1,17 @@
 import numpy as np
 from tyredyn.types.aliases import SignalLike
-
 from tyredyn.subsystems.radius.radius_mf6x import RadiusMF6x
 
 class ExtraSignals:
     """Module containing the methods to calculate dependent input signals."""
 
     def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other subsystems available."""
+        """Make the properties of the overarching class and other subsystems available."""
         self._model = model
 
-        self.normalize   = model.normalize
+        # helper functions
+        self.normalize  = model.normalize
         self.correction = model.correction
-
 
     def __getattr__(self, name):
         """Make the tyre coefficients directly available."""

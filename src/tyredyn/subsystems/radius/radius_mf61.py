@@ -14,7 +14,7 @@ class RadiusMF61(RadiusMF6x):
         super().__init__(model)
 
     #def __init__(self, model):
-        #"""Import the properties of the overarching ``MF61`` class."""
+        #"""Import the properties of the overarching class."""
         #self._model = model
 
         # helper functions

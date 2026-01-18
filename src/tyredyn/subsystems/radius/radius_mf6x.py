@@ -2,14 +2,15 @@ from tyredyn.types.aliases import NumberLike, SignalLike
 import numpy as np
 
 class RadiusMF6x:
+    """Class containing the methods for calculating the various radii and deflection for MF-Tyre 6.1 and MF-Tyre 6.2"""
 
     def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` class."""
-        self._model = model
+        """Import the properties of the overarching class."""
+        self._model     = model
 
         # helper functions
         self.normalize  = model.normalize
-        self.common = model.common
+        self.common     = model.common
 
         # other subsystems used
         self.stiffness  = model.stiffness
@@ -73,7 +74,7 @@ class RadiusMF6x:
         and forces.
         """
 
-        maxiter = 100 # TODO
+        maxiter = 100 # TODO: make adjustable setting
         tolx = 1e-5
 
         # set bounds for optimization

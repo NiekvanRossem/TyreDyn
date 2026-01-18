@@ -54,11 +54,19 @@ class MF62(MF6xBase):
         return RadiusMF62(self)
 
     @wraps(RadiusMF62._find_radius)
-    def find_radius(self, FX: SignalLike, FY: SignalLike, FZ: SignalLike, *, N: SignalLike, P: SignalLike, IA: SignalLike) -> list[SignalLike]:
+    def find_radius(
+            self,
+            FX: SignalLike,
+            FY: SignalLike,
+            FZ: SignalLike,
+            *,
+            N: SignalLike,
+            P: SignalLike,
+            IA: SignalLike
+    ) -> list[SignalLike]:
 
         # pre-process the input tyres_example
         (_, _, FZ, N, P, _, _, _,
          _) = self.common._process_data(SA=0.0, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=None, PHIT=0.0, angle_unit="rad")
 
         return self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
-

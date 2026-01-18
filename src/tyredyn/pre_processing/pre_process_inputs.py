@@ -2,17 +2,18 @@ from tyredyn.types.aliases import NumberLike, SignalLike, AngleUnit
 import numpy as np
 
 class ProcessInputs:
+    """Class containing the methods for pre-processing the input data."""
 
     def __init__(self, model):
         """Make the properties of the overarching class and other subsystems available."""
         self._model = model
 
         # helper functions
-        self.correction = model.correction
-        self.normalize  = model.normalize
-        self.signals = model.signals
+        self.correction    = model.correction
+        self.normalize     = model.normalize
+        self.signals       = model.signals
         self.extra_signals = model.extra_signals
-        self.data_checks = model.data_checks
+        self.data_checks   = model.data_checks
 
     def __getattr__(self, name):
         """Make the tyre coefficients directly available."""
@@ -121,11 +122,14 @@ class ProcessInputs:
     def __set_default_values(self, P, VX):
         """set default values for optional arguments"""
 
-        P = self.INFLPRES if P is None else P
+        P  = self.INFLPRES if P is None else P
         VX = self.LONGVL if VX is None else VX
         return [P, VX]
 
     def __low_speed_correction(self, *, SA, SL, VX, PHIT):
+        """
+        Corrects the slip angle, slip ratio, and turn slip for low speeds (less than VXLOW) to prevent singularities.
+        """
 
         # low speed correction for slip ratio and turn slip
         linear_correction = np.abs(VX / self.VXLOW)
