@@ -70,11 +70,11 @@ implementation. Code written by other people is also marked as such in the docst
 2. Besselink, I.J.M. & Schmeitz, A.J.C. & Pacejka, H.B. (2010). *An improved Magic Formula/Swift tyre model that can 
    handle inflation pressure changes* \[Unpublished manuscript]. Retrieved 30 December 2025. 
    [https://pure.tue.nl/ws/files/3139488/677330157969510.pdf](https://pure.tue.nl/ws/files/3139488/677330157969510.pdf)
-3. Van der Hofstad, R.H.M.T. (2009). *Study on improving the MF-Swift tyre model*
-   \[Master's thesis, Eindhoven University of Technology]
+3. Van der Hofstad, R.H.M.T. (2009). *Study on improving the MF-Swift tyre model*.
+   \[Master's thesis, Eindhoven University of Technology].
    [TU Eindhoven research portal](https://research.tue.nl/en/studentTheses/study-on-improving-the-mf-swift-tyre-model/)
 4. International Organization for Standardization (2011). *Road vehicles — Vehicle dynamics and road-holding
-   ability — Vocabulary* \[ISO standard No. 8855:2011]
+   ability — Vocabulary*. \[ISO standard No. 8855:2011].
    [iso.org/obp/ui/#iso:std:iso:8855:ed-2:v1:en](https://www.iso.org/obp/ui/#iso:std:iso:8855:ed-2:v1:en)
 5. LeMesurier, B. & Roberts, S. (2025). *Numerical Methods and Analysis with Python*. College of Charleston. Retrieved 
    28 December 2025.
