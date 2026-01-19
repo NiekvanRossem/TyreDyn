@@ -10,15 +10,15 @@ If you find any mistakes, would like to contribute, please contact me on:
 - [LinkedIn](https://www.linkedin.com/in/niek-van-rossem/)
 
 #### Currently supported tyre models
-- MF 6.1
-- MF 6.2
+- MF-Tyre 6.1
+- MF-Tyre 6.2
 
 #### Planned future support
 - PAC89
 - PAC94
 - PAC96
 - PAC2002
-- MF 5.2
+- MF-Tyre 5.2
 
 ## How to use
 Load in your TIR file by calling `current_tyre = Tyre(<filename>.tir)`. This will create an instance of the tyre model 
@@ -47,41 +47,41 @@ Some optional arguments can be passed as well. An overview is provided below:
 
 ## Current status
 This package is currently a work in progress. The current status (as of 1 January 2026) is:
-- MF 6.1 and MF 6.2 are implemented and functional
-- Still needs detailed testing to check whether `TyreDyn`, `MFeval`, and `MF-Tool` give the same outputs.
-- A lot of work related to making this a proper python library need to be done as well. Think version management, etc.
+- MF-Tyre 6.1 and 6.2 are implemented and functional.
+- Still needs detailed testing to check whether `TyreDyn`, `MFeval`, and the TNO solver give the same outputs.
+- A lot of work related to making this a proper python library need to be done as well.
 
 ## Contributors
 - Niek van Rossem
 
 ## Statement on AI use
-I used this project to explore how AI could be best be used as a coding assistant. The goal was not to outsource my 
-thinking to an LLM, or to have it otherwise create the project instead of me. Instead, it was used as an assistant and 
-teacher, providing me with various choices regarding implementation, and showing the trade-offs between them. More 
-specifically, ChatGPT-5 was used to provide advice on project architecture related decisions (think folder structure, 
-OOP specific implementation choices, et cetera). It was also used to write simple utility functions, like extracting 
-data from a file, or creating visualizations. Implementing the equations of the various tyre models was done without the 
-help of AI.
+ChatGPT-5 was used to provide advice on project architecture related decisions (folder structure, OOP specific 
+implementation choices, et cetera), providing me with various choices regarding implementation and showing the 
+trade-offs between them.. It was also used to write simple utility functions, such as extracting data from a file, or 
+creating visualizations. Implementing the equations of the various tyre models was done without the help of AI.
 
 All code written by ChatGPT is clearly marked as such in the docstring, and as been properly tested before 
 implementation. Code written by other people is also marked as such in the docstring. Unmarked code is written by me.
 
 ## References
-1. Pacejka, H.B. & Besselink, I. (2012). *Tire and Vehicle Dynamics. Third Edition*. Elsevier.
-   [doi: 10.1016/c2010-0-68548-8](https://doi.org/10.1016/c2010-0-68548-8)
-2. Besselink, I.J.M. & Schmeitz, A.J.C. & Pacejka, H.B. (2010). *An improved Magic Formula/Swift tyre model that can 
+1. Besselink, I.J.M. & Schmeitz, A.J.C. & Pacejka, H.B. (2010). *An improved Magic Formula/Swift tyre model that can 
    handle inflation pressure changes*. Vehicle System Dynamics, 48(sup1), 337–352.
    [doi: 10.1080/00423111003748088](https://doi-org.tudelft.idm.oclc.org/10.1080/00423111003748088)
-3. Besselink, I.J.M. & Schmeitz, A.J.C. & Pacejka, H.B. (2010). *An improved Magic Formula/Swift tyre model that can 
-   handle inflation pressure changes* **\[Unpublished manuscript]**. Retrieved 30 December 2025. 
+2. Besselink, I.J.M. & Schmeitz, A.J.C. & Pacejka, H.B. (2010). *An improved Magic Formula/Swift tyre model that can 
+   handle inflation pressure changes* \[Unpublished manuscript]. Retrieved 30 December 2025. 
    [https://pure.tue.nl/ws/files/3139488/677330157969510.pdf](https://pure.tue.nl/ws/files/3139488/677330157969510.pdf)
-4. Marco Furlan (2025). *MFeval*. MATLAB Central File Exchange. Retrieved December 18, 2025.
-   [mathworks.com/matlabcentral/fileexchange/63618-mfeval](mathworks.com/matlabcentral/fileexchange/63618-mfeval)
-3. Netherlands Organization for Applied Scientific Research (2013). *MF-Tyre/MF-Swift 6.2 -- Equation manual*.
-   Document revision 20130706.
-4. International Organization for Standardization (2011). *Road vehicles -- Vehicle dynamics and road-holding
-   ability -- Vocabulary* (ISO standard No. 8855:2011)
+3. Van der Hofstad, R.H.M.T. (2009). *Study on improving the MF-Swift tyre model*
+   \[Master's thesis, Eindhoven University of Technology]
+   [TU Eindhoven research portal](https://research.tue.nl/en/studentTheses/study-on-improving-the-mf-swift-tyre-model/)
+4. International Organization for Standardization (2011). *Road vehicles — Vehicle dynamics and road-holding
+   ability — Vocabulary* \[ISO standard No. 8855:2011]
    [iso.org/obp/ui/#iso:std:iso:8855:ed-2:v1:en](https://www.iso.org/obp/ui/#iso:std:iso:8855:ed-2:v1:en)
 5. LeMesurier, B. & Roberts, S. (2025). *Numerical Methods and Analysis with Python*. College of Charleston. Retrieved 
    28 December 2025.
    [https://lemesurierb.people.charleston.edu/numerical-methods-and-analysis-python/index.html](https://lemesurierb.people.charleston.edu/numerical-methods-and-analysis-python/index.html)
+6. Marco Furlan (2025). *MFeval*. MATLAB Central File Exchange. Retrieved December 18, 2025.
+   [mathworks.com/matlabcentral/fileexchange/63618-mfeval](mathworks.com/matlabcentral/fileexchange/63618-mfeval)
+7. Netherlands Organization for Applied Scientific Research (2013). *MF-Tyre/MF-Swift 6.2 — Equation manual*.
+   \[Document revision 20130706]. Retrieved 28 December 2025.
+8. Pacejka, H.B. & Besselink, I. (2012). *Tire and Vehicle Dynamics. Third Edition*. Elsevier.
+   [doi: 10.1016/c2010-0-68548-8](https://doi.org/10.1016/c2010-0-68548-8)
