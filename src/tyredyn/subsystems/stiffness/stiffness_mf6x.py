@@ -1,22 +1,15 @@
 from tyredyn.types.aliases import SignalLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 import numpy as np
 from typing import Literal
 
-class StiffnessMF6x:
+class StiffnessMF6x(SubSystemBase):
     """
-    Stiffness module for the MF 6.1 and MF 6.2 tyre models.
+    Stiffness module for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
-
-        # helper functions
-        self.normalize  = model.normalize
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
+    def _connect(self, model):
+        self.normalize = model.normalize
 
     def _find_lateral_stiffness(
             self,

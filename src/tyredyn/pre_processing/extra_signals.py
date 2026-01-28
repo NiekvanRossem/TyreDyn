@@ -1,21 +1,26 @@
 import numpy as np
 from tyredyn.types.aliases import SignalLike
-from tyredyn.subsystems.radius.radius_mf6x import RadiusMF6x
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 
-class ExtraSignals:
+class ExtraSignals(SubSystemBase):
     """Module containing the methods to calculate dependent input signals."""
 
-    def __init__(self, model):
-        """Make the properties of the overarching class and other subsystems available."""
-        self._model = model
-
-        # helper functions
+    def _connect(self, model):
         self.normalize  = model.normalize
         self.correction = model.correction
+        self.radius     = model.radius
 
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
+    #def __init__(self, model):
+    #    """Make the properties of the overarching class and other subsystems available."""
+    #    self._model = model
+
+    #    # helper functions
+    #    self.normalize  = model.normalize
+    #    self.correction = model.correction
+
+    #def __getattr__(self, name):
+    #    """Make the tyre coefficients directly available."""
+    #    return getattr(self._model, name)
 
     #------------------------------------------------------------------------------------------------------------------#
 
@@ -44,10 +49,10 @@ class ExtraSignals:
             counter += 1
 
             # free rolling radius
-            R_omega = RadiusMF6x._find_free_radius(self, N=N, R0=R0, V0=V0) # TODO
+            R_omega = self.radius._find_free_radius(N=N, R0=R0, V0=V0)
 
             # effective radius
-            RE = RadiusMF6x._find_effective_radius(self, FZ=FZ, P=P, R_omega=R_omega, FZ0=FZ0) # TODO
+            RE = self.radius._find_effective_radius(FZ=FZ, P=P, R_omega=R_omega, FZ0=FZ0)
 
             # find new angular speed (2.5)
             N_old = N

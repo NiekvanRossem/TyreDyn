@@ -1,22 +1,14 @@
 from tyredyn.types.aliases import SignalLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 
-
-class FrictionMF6x:
+class FrictionMF6x(SubSystemBase):
     """
-    Friction coefficient module for the MF 6.1 and MF 6.2 tyre models.
+    Friction coefficient module for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model     = model
-
-        # helper functions
+    def _connect(self, model):
         self.correction = model.correction
         self.normalize  = model.normalize
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     def _find_mu_x(
             self,

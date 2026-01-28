@@ -2,15 +2,14 @@ import numpy as np
 from typing import Literal
 from tyredyn.types.aliases import SignalLike, AngleUnit, NumberLike
 from tyredyn.subsystems.gradients.gradients_mf6x import GradientsMF6x
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 
-class TurnSlipMF6x:
+class TurnSlipMF6x(SubSystemBase):
     """
-    Module containing the turn slip extension functions for the MF 6.1 and MF 6.2 tyre models.
+    Module containing the turn slip extension functions for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
+    def _connect(self, model):
 
         # helper functions
         self.common     = model.common
@@ -20,7 +19,7 @@ class TurnSlipMF6x:
         # other subsystems
         self.friction   = model.friction
 
-    def __getattr__(self, name):
+    def __getattr__(self, name): # TODO: check if this is redundant
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
 
@@ -223,8 +222,8 @@ class TurnSlipMF6x:
         DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT, R0=R0, FZ0_prime=FZ0_prime)
         DRP = np.maximum(DRP, 1e-6) # to avoid dividing by zero
 
-        # turn slip correction (MF 6.2 equation manual)
-        # NOTE: The book by Pacejka & Besselink adds eps_r to the denominator of the acos term below.
+        # turn slip correction (MF-Tyre 6.2 equation manual)
+        # NOTE: The book by Pacejka & Besselink adds eps_r to the denominator of the arccos term below.
         zeta_7 = (2.0 / np.pi) * np.acos(MZP_90 / np.abs(DRP))
         return zeta_7
 
@@ -293,18 +292,17 @@ class TurnSlipMF6x:
         eps_gamma = self.correction._find_epsilon_gamma(dfz)
 
         # stiffness factor
-        # NOTE: the equation below is taken from the equation manual, which differs from the one in the book, shown
-        # below: (4.98). Via Marco Furlan from MFeval
+        # NOTE: the equation below is taken from the equation manual, which differs from the one in the book (4.98),
+        # shown below (via Marco Furlan)
         # BDRP = KZCRO / (CDRP * DDRP * (1.0 - eps_gamma) + self._eps_r)
         BDRP = KZCRO / (CDRP * DDRP * (1.0 - eps_gamma))
 
         # peak factor 2
-        # NOTE: the equation used is taken from the equation manual, which differs from the one in the book, shown
-        # below in the comment (4.93). EDRP is equal to QDRP2 (4.93), but this parameter generally does not exist in TIR
-        # files. Via Marco Furlan from MFeval
+        # NOTE: the equation used is taken from the equation manual, which differs from the one in the book (4.93),
+        # shown below in the comment. EDRP is equal to QDRP2 (4.93), but this parameter generally does not exist in TIR
+        # files (via Marco Furlan).
         # DRP = DDRP * self.sin(CDRP * np.atan(PHI_corr - EDRP * (PHI_corr - self.atan(PHI_corr))))
         PHI_corr = BDRP * R0 * PHIT
         DRP = DDRP * np.sin(CDRP * np.atan2(PHI_corr, 1))
 
         return DRP
-

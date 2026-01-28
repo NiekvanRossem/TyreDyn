@@ -1,21 +1,26 @@
 from tyredyn.types.aliases import AngleUnit, SignalLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 from typing import Union, Literal
 import numpy as np
 import warnings
 
-class DataChecks:
+class DataChecks(SubSystemBase):
 
-    def __init__(self, model):
-        """Make the properties of the overarching class and other subsystems available."""
-        self._model = model
-
-        # helper functions
+    def _connect(self, model):
         self.correction = model.correction
-        self.normalize  = model.normalize
+        self.normalize = model.normalize
 
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
+    #def __init__(self, model):
+    #    """Make the properties of the overarching class and other subsystems available."""
+    #    self._model = model
+
+    #    # helper functions
+    #    self.correction = model.correction
+    #    self.normalize  = model.normalize
+
+    #def __getattr__(self, name):
+    #    """Make the tyre coefficients directly available."""
+    #    return getattr(self._model, name)
 
     #------------------------------------------------------------------------------------------------------------------#
 

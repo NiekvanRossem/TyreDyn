@@ -1,19 +1,14 @@
 from tyredyn.types.aliases import SignalLike, NumberLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 import numpy as np
 
-class Corrections:
+class Corrections(SubSystemBase):
     """
     Module containing common correction factors for the magic formula, such as ``alpha_star``, ``LMU_star``, etc.
     """
 
-    def __init__(self, model):
-        """Make the properties of the overarching class and other subsystems available."""
-        self._model = model
+    def _connect(self, model):
         self._normalize = model.normalize
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     def _find_alpha_star(
             self,
@@ -93,35 +88,6 @@ class Corrections:
             LMU_star = LMU
         return LMU_star
 
-    """
-    def _find_phi(
-            self,
-            *,
-            FZ:   SignalLike,
-            N:    SignalLike,
-            VC:   SignalLike,
-            IA:   SignalLike,
-            PHIT: SignalLike
-    ) -> SignalLike:
-        \"""Returns the total spin of the tyre.\"""
-
-        # _normalize load
-        dfz = self._normalize._find_dfz(FZ)
-
-        # singularity-protected speed # TODO: MFeval uses VC_prime = V
-        VC_prime = self._find_vc_prime(VC)
-
-        # find the total spin velocity (4.75)
-        psi_dot = - PHIT / VC_prime
-
-        # camber reduction factor
-        eps_gamma = self._find_epsilon_gamma(dfz)
-
-        # total tyre spin (4.76)
-        PHI = (1.0 / VC_prime) * (psi_dot - (1.0 - eps_gamma) * N * self.sin(IA))
-        return PHI
-    """
-
     def _find_vc_prime(
             self,
             VC: SignalLike
@@ -132,17 +98,6 @@ class Corrections:
         VC_sign = self.signals._replace_value(np.sign(VC), target_sig=VC, target_val=0.0, new_val=1.0)
         VC_prime = VC + self._eps_V * VC_sign
 
-        # NOTE: the book .... ???
+        # NOTE: the book .... ??? TODO
 
         return VC_prime
-
-    """
-    def _find_smooth_reduction(
-            self,
-            VX : SignalLike
-    ) -> SignalLike:
-
-        # smooth reduction factor for low speed correction
-        smooth_reduction = 1.0 - 0.5 * (1.0 + np.cos(np.pi * VX / self.VXLOW))
-        return smooth_reduction
-    """

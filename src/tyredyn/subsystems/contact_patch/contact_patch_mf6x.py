@@ -1,21 +1,14 @@
 from tyredyn.types.aliases import SignalLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 import numpy as np
 
-class ContactPatchMF6x:
+class ContactPatchMF6x(SubSystemBase):
     """
-    Contact patch module for the MF 6.1 and MF 6.2 tyre models.
+    Contact patch module for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
-
-        # other subsystems
+    def _connect(self, model):
         self.stiffness = model.stiffness
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     def _find_contact_patch(
             self,

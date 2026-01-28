@@ -21,8 +21,22 @@ If you find any mistakes, would like to contribute, please contact me on:
 - MF-Tyre 5.2
 
 ## How to use
-Load in your TIR file by calling `current_tyre = Tyre(<filename>.tir)`. This will create an instance of the tyre model 
-class corresponding to the `FITTYP` parameter.
+Load in your TIR file as follows
+
+
+```python
+import tyredyn
+current_tyre = tyredyn.Tyre(<filepath>)
+```
+
+This will automaticall create an instance of the tyre model class corresponding to the `FITTYP` parameter. The tyre 
+state can be evaluated by calling one of the methods:
+
+```python
+FX = current_tyre.find_fx_combined(alpha, kappa, load, press, camber, speed_x, turn_slip)
+```
+
+See the documentation for the full list of methods per tyre model.
 
 Some optional arguments can be passed as well. An overview is provided below:
 1. `use_model_type` -- Overrides the `FITTYP` parameter in the TIR file. Compatibility is limited to MF 5.0 ~ MF 6.2. 
@@ -30,11 +44,10 @@ Some optional arguments can be passed as well. An overview is provided below:
 2. `validate` -- If set to `True`, the TIR file will be validated after loading in. This checks if all used parameters 
    are present and of the right data type (default is `True`).
 3. `use_alpha_star` -- Adds a correction to the slip angle signal for large angles and reverse running (default is `True`). 
-4. `use_gamma_star` -- 
-5. `use_lmu_star` -- 
+4. `use_gamma_star` -- Adds a correction to the inclination signal for large angles (default is `True`).
 6. `use_turn_slip` -- Adds turn-slip correction (default is `False`).
-7. `check_format` -- Checks the format of the input signals: All have to be 1D arrays or lists, and either have the same 
-   length or be of type `float`/`int` (default is `True`).
+7. `check_format` -- Checks the format of the input signals: All have to be 1D numpy arrays or lists of a common length, 
+   or be a single value of type `float`/`int` (default is `True`).
 8. `check_limits` -- Checks if inputs are within the range specified in the TIR file, and clips them if not (default is 
    `True`).
 9. `use_mfeval_mode` -- Compatibility mode with MFeval. If set to `True`, the output list of `find_full_state` matches 
@@ -43,7 +56,6 @@ Some optional arguments can be passed as well. An overview is provided below:
 #### Dependencies:
 1. NumPy
 2. Pydantic (TIR validation only)
-3. Matplotlib (example notebooks only)
 
 ## Current status
 This package is currently a work in progress. The current status (as of 1 January 2026) is:
@@ -57,8 +69,8 @@ This package is currently a work in progress. The current status (as of 1 Januar
 ## Statement on AI use
 ChatGPT-5 was used to provide advice on project architecture related decisions (folder structure, OOP specific 
 implementation choices, et cetera), providing me with various choices regarding implementation and showing the 
-trade-offs between them.. It was also used to write simple utility functions, such as extracting data from a file, or 
-creating visualizations. Implementing the equations of the various tyre models was done without the help of AI.
+trade-offs between them. It was also used to write simple utility functions, such as extracting data from a file, or 
+creating visualizations. Implementing the equations of the various tyre models was done **without** the help of AI.
 
 All code written by ChatGPT is clearly marked as such in the docstring, and as been properly tested before 
 implementation. Code written by other people is also marked as such in the docstring. Unmarked code is written by me.

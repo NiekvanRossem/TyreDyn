@@ -2,7 +2,7 @@ from tyredyn import Tyre
 import numpy as np
 from pathlib import Path
 
-filepath = Path(r'/tyres_example\MF62\car205_60R19.tir')
+filepath = Path(r'/tyres_example\car205_60R19.tir')
 
 # initialize tyre
 tyre = Tyre(
@@ -48,7 +48,7 @@ Cz_mfeval = FZ / rho
 def radps2rpm(input):
     return input * 60.0 / (2.0 * np.pi)
 
-print("=== FULL STATE OUTPUT ===")
+print("\n=== FULL STATE OUTPUT ===")
 print("Input state")
 print(f"  Slip angle:           {np.rad2deg(SA):.1f} deg")
 print(f"  Slip ratio:           {SL:.2f}")

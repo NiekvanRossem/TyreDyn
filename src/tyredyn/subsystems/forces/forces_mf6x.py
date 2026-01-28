@@ -1,15 +1,15 @@
 from tyredyn.types.aliases import SignalLike, AngleUnit
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 from typing import Literal
 import numpy as np
 
-class ForcesMF6x:
+class ForcesMF6x(SubSystemBase):
     """
-    Forces module for the MF 6.1 and MF 6.2 tyre models.
+    Forces module for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
+    def _connect(self, model):
+        """Connect other subsystems."""
 
         # helper functions
         self.correction = model.correction
@@ -21,10 +21,6 @@ class ForcesMF6x:
         self.friction   = model.friction
         self.gradient   = model.gradient
         self.turn_slip  = model.turn_slip
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     #------------------------------------------------------------------------------------------------------------------#
     # LONGITUDINAL FORCES
@@ -92,14 +88,14 @@ class ForcesMF6x:
         S_HX = (self.PHX1 + self.PHX2 * dfz) * self.LHX
 
         # low speed correction
-        smooth_reduction = self.low_speed_reduction._find_smooth_reduction(VX)
+        smooth_reduction = self.low_speed._smooth_reduction(VX)
         S_HX = self.signals._correct_signal(S_HX, correction_factor=smooth_reduction, helper_sig=np.abs(VX), threshold=self.VXLOW, condition="<")
 
         # vertical shift (4.E18)
         S_VX = FZ * (self.PVX1 + self.PVX2 * dfz) * self.LVX * LMUX_prime * zeta_1
 
         # low speed correction
-        smooth_reduction = self.low_speed_reduction._find_smooth_reduction(VX)
+        smooth_reduction = self.low_speed._smooth_reduction(VX)
         S_VX = self.signals._correct_signal(S_VX, correction_factor=smooth_reduction, helper_sig=np.abs(VX), threshold=self.VXLOW, condition="<")
 
         # corrected slip ratio (4.E10)

@@ -1,9 +1,6 @@
-from tyredyn.pre_processing.extra_signals import ExtraSignals
-from tyredyn.pre_processing.pre_process_inputs import ProcessInputs
-from tyredyn.subsystems.common.low_speed_reduction import LowSpeedReduction
 from tyredyn.subsystems.common.signals import Signals
 from tyredyn.types.aliases import SignalLike, AngleUnit
-from tyredyn.models.base_tyre import TyreBase
+from tyredyn.infrastructure.tyre_base import TyreBase
 from tyredyn.types.dataclasses import InputSignals
 
 # pre-processing
@@ -15,7 +12,7 @@ from tyredyn.pre_processing.pre_process_inputs import ProcessInputs
 from tyredyn.subsystems.common.common_mf6x import CommonMF6x
 from tyredyn.subsystems.common.corrections import Corrections
 from tyredyn.subsystems.common.normalize import Normalize
-from tyredyn.subsystems.common.low_speed_reduction import LowSpeedReduction
+#from tyredyn.subsystems.common.low_speed_reduction import LowSpeedReduction
 
 # import subsystems
 from tyredyn.subsystems.contact_patch.contact_patch_mf6x import ContactPatchMF6x
@@ -27,6 +24,7 @@ from tyredyn.subsystems.relaxation.relaxation_mf6x import RelaxationMF6x
 from tyredyn.subsystems.trail.trail_mf6x import TrailMF6x
 from tyredyn.subsystems.turn_slip.turn_slip_mf6x import TurnSlipMF6x
 from tyredyn.subsystems.stiffness.stiffness_mf6x import StiffnessMF6x
+from ..subsystems import *
 
 from functools import wraps
 
@@ -89,27 +87,57 @@ class MF6xBase(TyreBase):
         # setting this value to 10.0 (4.E8), but a value of 1.0 matches the TNO solver (via Marco Furlan)
         self._A_mu = 1.0
 
-        # import helper functions
-        self.signals        = Signals(self)
+        # import helper systems
+        self.common         = CommonMF6x(self)
+        self.correction     = Corrections(self)
+        self.data_checks    = DataChecks(self)
+        self.extra_signals  = ExtraSignals(self) # TODO: rename
+        self.low_speed      = LowSpeedReduction(self)
         self.normalize      = Normalize(self)
-        self.low_speed_reduction = LowSpeedReduction(self)
-        self.correction     = Corrections(self)  # depends on normalize
-        self.common         = CommonMF6x(self)  # depends on normalize and correction
-        self.extra_signals  = ExtraSignals(self) # depends on normalize and correction
-        self.data_checks    = DataChecks(self)  # depends on normalize and correction
-        self.process_inputs = ProcessInputs(self) # depends on signals, extra_signals, normalize, and correction
+        self.process_inputs = ProcessInputs(self)
+        self.signals        = Signals(self) # TODO: rename
 
-        # import subsystems (order is important here since some subsystems depend on others)
-        self.friction       = FrictionMF6x(self)  # depends only on helper functions
-        self.stiffness      = StiffnessMF6x(self)  # depends only on helper functions
-        self.turn_slip      = TurnSlipMF6x(self)  # depends on friction and gradients
-        self.contact_patch  = ContactPatchMF6x(self)  # depends on stiffness
-        self.radius         = self._create_radius_model()
-        self.trail          = TrailMF6x(self)  # depends on turn slip
-        self.gradient       = GradientsMF6x(self)  # depends on turn slip
-        self.relaxation     = RelaxationMF6x(self)  # depends on stiffness and gradient
-        self.forces         = ForcesMF6x(self)  # depends on turn slip, gradient, and forces
-        self.moments        = MomentsMF6x(self)  # depends on turn slip, friction, trail, gradient, and forces
+        # import subsystems
+        self.contact_patch  = ContactPatchMF6x(self)
+        self.forces         = ForcesMF6x(self)
+        self.friction       = FrictionMF6x(self)
+        self.gradient       = GradientsMF6x(self)
+        self.moments        = MomentsMF6x(self)
+        self.relaxation     = RelaxationMF6x(self)
+        self.stiffness      = StiffnessMF6x(self)
+        self.turn_slip      = TurnSlipMF6x(self)
+        self.trail          = TrailMF6x(self)
+
+        # the radius module contains the only differences between MF-Tyre 6.1 and 6.2
+        self.radius = self._create_radius_model()
+
+        subsystems = ( # TODO: make registration function
+            self.signals,
+            self.normalize,
+            self.low_speed,
+            self.correction,
+            self.common,
+            self.extra_signals,
+            self.data_checks,
+            self.process_inputs,
+            self.friction,
+            self.stiffness,
+            self.turn_slip,
+            self.contact_patch,
+            self.radius,
+            self.trail,
+            self.gradient,
+            self.relaxation,
+            self.moments,
+            self.forces,
+        )
+
+        # solve dependencies
+        for subsystem in subsystems: # TODO: make registration function
+            try:
+                subsystem._connect(self)
+            except:
+                raise NotImplementedError(f"_connect not implemented for {subsystem.__class__.__name__}")
 
     # ------------------------------------------------------------------------------------------------------------------#
     # STATE OUTPUTS

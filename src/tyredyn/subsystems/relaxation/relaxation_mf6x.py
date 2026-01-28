@@ -1,23 +1,16 @@
 from tyredyn.types.aliases import SignalLike, AngleUnit
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 from typing import Literal
 import numpy as np
 
-class RelaxationMF6x:
+class RelaxationMF6x(SubSystemBase):
     """
-    Relaxation length module for the MF 6.1 and MF 6.2 tyre models.
+    Relaxation length module for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
-
-        # other subsystems
-        self.stiffness  = model.stiffness
-        self.gradient   = model.gradient
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
+    def _connect(self, model):
+        self.stiffness = model.stiffness
+        self.gradient  = model.gradient
 
     def _find_lateral_relaxation(
             self,
@@ -90,13 +83,6 @@ class RelaxationMF6x:
         sigma_x : SignalLike
             Longitudinal relaxation length.
         """
-
-        # set default values for optional arguments
-        #P = self.INFLPRES if P is None else P
-
-        # check if arrays have the right dimension, and flatten if needed
-        #if self._check_format:
-        #    FZ, P = self.data_checks._format_check([FZ, P])
 
         # slip stiffness
         KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)

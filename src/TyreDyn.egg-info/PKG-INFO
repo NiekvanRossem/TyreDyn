@@ -27,8 +27,8 @@ If you find any mistakes, would like to contribute, please contact me on:
 - [LinkedIn](https://www.linkedin.com/in/niek-van-rossem/)
 
 #### Currently supported tyre models
-- MF 6.1
-- MF 6.2
+- MF-Tyre 6.1
+- MF-Tyre 6.2
 
 #### Planned future support
 - PAC89
@@ -42,7 +42,7 @@ Load in your TIR file by calling `current_tyre = Tyre(<filename>.tir)`. This wil
 class corresponding to the `FITTYP` parameter.
 
 Some optional arguments can be passed as well. An overview is provided below:
-1. `use_model_type` -- Overrides the `FITTYP` parameter in the TIR file. Compatibility is limited to MF 5.0 ~ MF 6.2. 
+1. `use_model_type` -- Overrides the `FITTYP` parameter in the TIR file. Compatibility is limited to MF 5.0 ~ MF-Tyre 6.2.
    Valid inputs should have one of the following formats: `52`, `MF52`, `MF5.2`, or `MF 5.2` (default is `None`).
 2. `validate` -- If set to `True`, the TIR file will be validated after loading in. This checks if all used parameters 
    are present and of the right data type (default is `True`).
@@ -64,7 +64,7 @@ Some optional arguments can be passed as well. An overview is provided below:
 
 ## Current status
 This package is currently a work in progress. The current status (as of 1 January 2026) is:
-- MF 6.1 and MF 6.2 are implemented and functional
+- MF-Tyre 6.1 and MF-Tyre 6.2 are implemented and functional
 - Still needs detailed testing to check whether `TyreDyn`, `MFeval`, and `MF-Tool` give the same outputs.
 - A lot of work related to making this a proper python library need to be done as well. Think version management, etc.
 

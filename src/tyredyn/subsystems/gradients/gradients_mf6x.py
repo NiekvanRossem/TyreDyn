@@ -1,16 +1,15 @@
 from tyredyn.types.aliases import SignalLike, AngleUnit
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 import numpy as np
 from typing import Literal
 
-class GradientsMF6x:
+class GradientsMF6x(SubSystemBase):
     """
-    Module containing the gradient functions such as cornering stiffness or camber stiffness for the MF 6.1 and MF 6.2
+    Module containing the gradient functions such as cornering stiffness or camber stiffness for the MF-Tyre 6.1 and MF-Tyre 6.2
     tyre models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
+    def _connect(self, model):
 
         # helper functions
         self.correction = model.correction
@@ -19,10 +18,6 @@ class GradientsMF6x:
 
         # other subsystems
         self.turn_slip  = model.turn_slip
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     def _find_cornering_stiffness(
             self,

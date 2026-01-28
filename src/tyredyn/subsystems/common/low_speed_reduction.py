@@ -1,19 +1,14 @@
 import numpy as np
 from tyredyn.types.aliases import SignalLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 
-class LowSpeedReduction:
+class LowSpeedReduction(SubSystemBase):
     """Class containing the low speed correction equations."""
 
-    def __init__(self, model):
-        """Make the properties of the overarching class and other subsystems available."""
-        self._model = model
+    def _connect(self, model):
         self._normalize = model.normalize
 
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
-
-    def _find_smooth_reduction(
+    def _smooth_reduction(
             self,
             VX : SignalLike
     ) -> SignalLike:

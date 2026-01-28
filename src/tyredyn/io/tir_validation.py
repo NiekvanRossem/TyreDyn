@@ -15,8 +15,8 @@ ChatGPT was used for advice regarding best practices and debugging. Code was ful
 Current version: 1.1
 
 Changelog:
-    01-01-2026: Removed MF-Swift parameters. Added support for MF 5.2 and MF 6.1
-    07-12-2025: First working version. Only supports MF 6.2
+    01-01-2026: Removed MF-Swift parameters. Added support for MF 5.2 and MF-Tyre 6.1
+    07-12-2025: First working version. Only supports MF-Tyre 6.2
 """
 
 from pydantic import BaseModel, RootModel, field_validator

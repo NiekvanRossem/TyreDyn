@@ -1,23 +1,22 @@
 from tyredyn.types.aliases import NumberLike, SignalLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 import numpy as np
+import warnings
 
-class RadiusMF6x:
-    """Class containing the methods for calculating the various radii and deflection for MF-Tyre 6.1 and MF-Tyre 6.2"""
+class RadiusMF6x(SubSystemBase):
+    """
+    Class containing the methods for calculating the various radii and deflection for MF-Tyre 6.1 and MF-Tyre 6.2.
+    Please use ``RadiusMF61`` or ``RadiusMF62`` instead, as this one is a template class.
+    """
 
-    def __init__(self, model):
-        """Import the properties of the overarching class."""
-        self._model     = model
+    def _connect(self, model):
 
         # helper functions
-        self.normalize  = model.normalize
-        self.common     = model.common
+        self.normalize = model.normalize
+        self.common = model.common
 
         # other subsystems used
-        self.stiffness  = model.stiffness
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
+        self.stiffness = model.stiffness
 
     def _find_free_radius(
             self,

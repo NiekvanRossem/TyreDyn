@@ -1,15 +1,14 @@
 from tyredyn.types.aliases import SignalLike, AngleUnit
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 from typing import Literal
 import numpy as np
 
-class MomentsMF6x:
+class MomentsMF6x(SubSystemBase):
     """
-    Moments module for the MF 6.1 and MF 6.2 tyre models.
+    Moments module for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
+    def _connect(self, model):
 
         # helper functions
         self.correction = model.correction
@@ -23,10 +22,6 @@ class MomentsMF6x:
         self.gradient   = model.gradient
         self.forces     = model.forces
         self.trail      = model.trail
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     # ------------------------------------------------------------------------------------------------------------------#
     # PURE SLIP MOMENTS
@@ -424,7 +419,7 @@ class MomentsMF6x:
                 self.QSX7, self.QSX8, self.QSX9, self.QSX10, self.QSX11]
         set2 = [self.QSX12, self.QSX13, self.QSX14]
 
-        # NOTE: the equation manual for MF 6.2 states that the equation for the overturning couple needs to be split up
+        # NOTE: the equation manual for MF-Tyre 6.2 states that the equation for the overturning couple needs to be split up
         # into two parts: the first using the parameters QSX1 to QSX11, and the second using QSX12 to QSX14. The first
         # set is the general formulation, and the second set is an alternative formulation mainly used for motorcycle
         # tyres. If one set is used, the other should be zero! If for any reason a TIR file is provided with non-zero
@@ -441,7 +436,7 @@ class MomentsMF6x:
                                   + self.QSX10 * np.atan(self.QSX11 * FZ / FZ0) * IA)
                   + R0 * FY * self.LMX * (self.QSX13 + self.QSX14 * np.abs(IA)))
 
-        # NOTE: in the cases where only a single parameter set is used, the equation is taken from the MF 6.2 equation
+        # NOTE: in the cases where only a single parameter set is used, the equation is taken from the MF-Tyre 6.2 equation
         # manual, instead of (4.E69) from the 2012 book by Pacejka & Besselink (shown in a comment below), in order to
         # match the TNO solver (via Marco Furlan).
         # MX = R0 * FZ * (self.QSX1 * self.LVMX - self.QSX2 * IA * (1.0 + self.PPMX1 * dpi) + self.QSX3 * FY / FZ0
@@ -450,7 +445,7 @@ class MomentsMF6x:
         #                 * np.atan2(self.QSX11 * FZ / FZ0, 1) * IA) * self.LMX
         else:
 
-            # overturning couple (MF 6.2 equation manual) -- FZ trig functions do not get corrected to degrees
+            # overturning couple (MF-Tyre 6.2 equation manual) -- FZ trig functions do not get corrected to degrees
             MX = (R0 * FZ * self.LMX * (self.QSX1 * self.LVMX - self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
                                        + self.QSX3 * (FY / FZ0) + self.QSX4 * np.cos(self.QSX5 * np.atan2((self.QSX6 * (FZ / FZ0)) ** 2, 1))
                                        * self.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * (FY / FZ0), 1))

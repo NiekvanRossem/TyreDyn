@@ -1,19 +1,27 @@
 from tyredyn.types.aliases import NumberLike, SignalLike, AngleUnit
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 import numpy as np
 
-class ProcessInputs:
+class ProcessInputs(SubSystemBase):
     """Class containing the methods for pre-processing the input data."""
 
-    def __init__(self, model):
-        """Make the properties of the overarching class and other subsystems available."""
-        self._model = model
-
-        # helper functions
+    def _connect(self, model):
         self.correction    = model.correction
         self.normalize     = model.normalize
         self.signals       = model.signals
         self.extra_signals = model.extra_signals
         self.data_checks   = model.data_checks
+
+    #def __init__(self, model):
+    #    """Make the properties of the overarching class and other subsystems available."""
+    #    self._model = model
+
+    #    # helper functions
+    #    self.correction    = model.correction
+    #    self.normalize     = model.normalize
+    #    self.signals       = model.signals
+    #    self.extra_signals = model.extra_signals
+    #    self.data_checks   = model.data_checks
 
     def __getattr__(self, name):
         """Make the tyre coefficients directly available."""

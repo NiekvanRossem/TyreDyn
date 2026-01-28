@@ -1,18 +1,11 @@
 from tyredyn.types.operator_map import _OPS
 from tyredyn.types.aliases import SignalLike, NumberLike
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 from typing import Literal, Union
 import numpy as np
 
-class Signals:
+class Signals(SubSystemBase):
     """Module containing the functions to modify signals."""
-
-    def __init__(self, model):
-        """Make the properties of the overarching ``MF61`` class and other subsystems available."""
-        self._model = model
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     def _correct_signal(
             self,

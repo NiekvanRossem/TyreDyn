@@ -1,15 +1,14 @@
 from tyredyn.types.aliases import SignalLike, AngleUnit
+from tyredyn.infrastructure.subsystem_base import SubSystemBase
 from typing import Literal
 import numpy as np
 
-class TrailMF6x:
+class TrailMF6x(SubSystemBase):
     """
-    Pneumatic trail module for the MF 6.1 and MF 6.2 tyre models.
+    Pneumatic trail module for the MF-Tyre 6.1 and MF-Tyre 6.2 models.
     """
 
-    def __init__(self, model):
-        """Import the properties of the overarching ``MF61`` or ``MF62`` class."""
-        self._model = model
+    def _connect(self, model):
 
         # helper functions
         self.correction = model.correction
@@ -18,10 +17,6 @@ class TrailMF6x:
 
         # other subsystems
         self.turn_slip  = model.turn_slip
-
-    def __getattr__(self, name):
-        """Make the tyre coefficients directly available."""
-        return getattr(self._model, name)
 
     def find_trail_pure(
             self,

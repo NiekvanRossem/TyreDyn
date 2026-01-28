@@ -15,7 +15,7 @@ class MF62(MF6xBase):
     ``Tyre(<filename>.tir)``, where ``<filename>.tir`` is a TIR property file with ``FITTYP`` ``62`` or newer.
 
     This class contains functions to evaluate the tyre state based on a set of inputs. Equations are mainly based on the
-    MF 6.2 equation manual by TNO. Some equations are taken from Besselink's 2010 paper in order to match the TNO
+    MF-Tyre 6.2 equation manual by TNO. Some equations are taken from Besselink's 2010 paper in order to match the TNO
     solver and MFeval. Corrections from Marco Furlan.
 
     References:
