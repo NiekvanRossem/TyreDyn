@@ -21,3 +21,4 @@ env/
 .vscode/
 /.idea
 
+/tests_private/
