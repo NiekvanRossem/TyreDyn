@@ -1,6 +1,7 @@
 from pathlib import Path
 
-def _find_project_root(marker: str = "tyres_example"): # TODO
+
+def _find_project_root(marker: str = "tyres_example"):
     """Small script that find the project root folder path, as well as commonly used folders. Written by ChatGPT."""
 
     path = Path(__file__).resolve()
@@ -9,6 +10,7 @@ def _find_project_root(marker: str = "tyres_example"): # TODO
             return parent
     return Path.cwd()
 
+
 # commonly used folders to be imported elsewhere
 PROJECT_ROOT = _find_project_root()
-TYRE_DIR = PROJECT_ROOT / "tyres_example"
+TYRE_DIR = PROJECT_ROOT / "tyres_example"  # TODO: this is only for me

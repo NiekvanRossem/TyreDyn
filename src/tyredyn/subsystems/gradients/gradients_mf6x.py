@@ -70,7 +70,7 @@ class GradientsMF6x(SubSystemBase):
             PHI = self.extra_signals._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_3 = self.turn_slip._find_zeta_3(PHI)
         else:
-            zeta_3 = self.zeta_default
+            zeta_3 = self._zeta_default
 
         # corrected camber angle
         gamma_star = self.correction._find_gamma_star(IA)

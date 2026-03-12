@@ -64,7 +64,7 @@ class TrailMF6x(SubSystemBase):
             PHI = self.extra_signals._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_5 = self.turn_slip._find_zeta_5(PHI)
         else:
-            zeta_5 = self.zeta_default
+            zeta_5 = self._zeta_default
 
         # cosine term correction factor
         cos_prime_alpha = self.correction._find_cos_prime_alpha(VC=VC, VCX=VCX)
@@ -126,7 +126,7 @@ class TrailMF6x(SubSystemBase):
             PHI = self.extra_signals._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_5 = self.turn_slip._find_zeta_5(PHI)
         else:
-            zeta_5 = self.zeta_default
+            zeta_5 = self._zeta_default
 
         # cosine term correction factor
         cos_prime_alpha = self.correction._find_cos_prime_alpha(VC=VC, VCX=VCX)
@@ -154,6 +154,8 @@ class TrailMF6x(SubSystemBase):
         # pneumatic trail (4.E73)
         t = (DT * self.cos(CT * self.atan(BT * alpha_t_eq - ET * (BT * alpha_t_eq - self.atan(BT * alpha_t_eq))))
              * cos_prime_alpha * self.LFZO)
+        #t2 = (DT * self.cos(CT * self.atan(BT * alpha_t_eq - ET * (BT * alpha_t_eq - self.atan(BT * alpha_t_eq))))
+        #     * cos(alpha_prime))
 
         # NOTE: the trail above is multiplied with LFZO to match the TNO solver. This is not in any official documents,
         # but was discovered by Marco Furlan.
@@ -207,9 +209,8 @@ class TrailMF6x(SubSystemBase):
         # shape factor (4.E41)
         CT = self.QCZ1
 
-        # peak factor(A60)
-        DT = ((self.QDZ1 + self.QDZ2 * dfz) * (1.0 - self.PPZ1 * dpi) * (1.0 + self.QDZ3 * IA + self.QDZ4 * IA ** 2)
-              * FZ * (R0 / FZ0_prime) * self.LTR * zeta_5)
+        # peak factor(A60) # CORRECT
+        DT = ((self.QDZ1 + self.QDZ2 * dfz) * (1.0 - self.PPZ1 * dpi) * (1.0 + self.QDZ3 * IA + self.QDZ4 * IA ** 2) * FZ * (R0 / FZ0_prime) * self.LTR * zeta_5)
 
         # NOTE: equation above is taken from the paper instead of the book. Equation (4.E43) from the book (shown in a
         # comment below) does not match the TNO solver (via Marco Furlan):
@@ -224,7 +225,5 @@ class TrailMF6x(SubSystemBase):
         alpha_t = alpha_star + S_HT
 
         # curvature factor (4.E44)
-        ET = (self.QEZ1 + self.QEZ2 * dfz + self.QEZ3 * dfz ** 2) * (1.0 + (self.QEZ4 + self.QEZ5 * gamma_star)
-                                                                     * np.pi / 2 * self.atan(BT * CT * alpha_t))
-
+        ET = (self.QEZ1 + self.QEZ2 * dfz + self.QEZ3 * dfz ** 2) * (1.0 + (self.QEZ4 + self.QEZ5 * gamma_star) * (2 / np.pi) * self.atan(BT * CT * alpha_t))
         return [BT, CT, DT, ET, alpha_t]

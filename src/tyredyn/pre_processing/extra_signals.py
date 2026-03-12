@@ -10,18 +10,6 @@ class ExtraSignals(SubSystemBase):
         self.correction = model.correction
         self.radius     = model.radius
 
-    #def __init__(self, model):
-    #    """Make the properties of the overarching class and other subsystems available."""
-    #    self._model = model
-
-    #    # helper functions
-    #    self.normalize  = model.normalize
-    #    self.correction = model.correction
-
-    #def __getattr__(self, name):
-    #    """Make the tyre coefficients directly available."""
-    #    return getattr(self._model, name)
-
     #------------------------------------------------------------------------------------------------------------------#
 
     def _find_omega(

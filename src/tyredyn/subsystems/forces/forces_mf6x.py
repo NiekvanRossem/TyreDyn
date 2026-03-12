@@ -73,7 +73,7 @@ class ForcesMF6x(SubSystemBase):
             PHI    = self.extra_signals._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_1 = self.turn_slip._find_zeta_1(SL=SL, FZ=FZ, PHI=PHI)
         else:
-            zeta_1 = self.zeta_default
+            zeta_1 = self._zeta_default
 
         # _normalize inputs
         dfz = self.normalize._find_dfz(FZ)
@@ -257,9 +257,9 @@ class ForcesMF6x(SubSystemBase):
             zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
                                                  zeta_2=zeta_2)
         else:
-            zeta_0 = self.zeta_default
-            zeta_2 = self.zeta_default
-            zeta_4 = self.zeta_default
+            zeta_0 = self._zeta_default
+            zeta_2 = self._zeta_default
+            zeta_4 = self._zeta_default
 
         # find normalized load and pressure
         dfz = self.normalize._find_dfz(FZ)
@@ -369,7 +369,7 @@ class ForcesMF6x(SubSystemBase):
             PHI = self.extra_signals._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
         else:
-            zeta_2 = self.zeta_default
+            zeta_2 = self._zeta_default
 
         # normalized vertical load
         dfz = self.normalize._find_dfz(FZ)

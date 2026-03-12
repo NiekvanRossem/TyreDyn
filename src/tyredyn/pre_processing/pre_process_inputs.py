@@ -12,17 +12,6 @@ class ProcessInputs(SubSystemBase):
         self.extra_signals = model.extra_signals
         self.data_checks   = model.data_checks
 
-    #def __init__(self, model):
-    #    """Make the properties of the overarching class and other subsystems available."""
-    #    self._model = model
-
-    #    # helper functions
-    #    self.correction    = model.correction
-    #    self.normalize     = model.normalize
-    #    self.signals       = model.signals
-    #    self.extra_signals = model.extra_signals
-    #    self.data_checks   = model.data_checks
-
     def __getattr__(self, name):
         """Make the tyre coefficients directly available."""
         return getattr(self._model, name)
@@ -105,22 +94,6 @@ class ProcessInputs(SubSystemBase):
 
         # correct signals for low speed
         SA, SL, PHIT = self.__low_speed_correction(SA=SA, SL=SL, VX=VX, PHIT=PHIT)
-
-        # low speed correction for slip ratio and turn slip
-        #linear_correction = np.abs(VX / self.VXLOW)
-        #PHIT = self.signals._correct_signal(PHIT, correction_factor=linear_correction, helper_sig=VX, condition="<", threshold=self.VXLOW)
-        #SL   = self.signals._correct_signal(SL,   correction_factor=linear_correction, helper_sig=VX, condition="<", threshold=self.VXLOW)
-
-        # lateral slip speed (2.12)
-        #VSY = VX * self.tan(SA)
-
-        # low speed correction for slip angle
-        #speed_sum = np.abs(VX) + np.abs(VSY)
-        #alpha_correction = speed_sum / self.VXLOW
-        #SA = self.signals._correct_signal(SA, correction_factor=alpha_correction, helper_sig=speed_sum, condition="<", threshold=self.VXLOW)
-
-        # flip the sign of the turn slip for negative speeds
-        #PHIT = self.signals._flip_negative(PHIT, helper_sig=VX)
 
         return [SA, SL, FZ, N, P, IA, VX, PHIT, angle_unit]
 

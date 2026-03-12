@@ -1,7 +1,7 @@
+from tyredyn.types.aliases import SignalLike, AngleUnit
 import warnings
 import numpy as np
 from typing import Union
-from tyredyn.types.aliases import SignalLike, AngleUnit
 
 class TyreBase:
     """

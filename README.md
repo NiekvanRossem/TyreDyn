@@ -20,9 +20,8 @@ If you find any mistakes, would like to contribute, please contact me on:
 - PAC2002
 - MF-Tyre 5.2
 
-## How to use
+## How to use TyreDyn
 Load in your TIR file as follows
-
 
 ```python
 import tyredyn
@@ -58,7 +57,7 @@ Some optional arguments can be passed as well. An overview is provided below:
 2. Pydantic (TIR validation only)
 
 ## Current status
-This package is currently a work in progress. The current status (as of 1 January 2026) is:
+This package is currently a work in progress. The current status (as of 12 March 2026) is:
 - MF-Tyre 6.1 and 6.2 are implemented and functional.
 - Still needs detailed testing to check whether `TyreDyn`, `MFeval`, and the TNO solver give the same outputs.
 - A lot of work related to making this a proper python library need to be done as well.

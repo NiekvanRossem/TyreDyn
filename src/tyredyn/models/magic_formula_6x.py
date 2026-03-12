@@ -1,45 +1,10 @@
-from tyredyn.subsystems.common.signals import Signals
 from tyredyn.types.aliases import SignalLike, AngleUnit
 from tyredyn.infrastructure.tyre_base import TyreBase
 from tyredyn.types.dataclasses import InputSignals
-
-# pre-processing
-from tyredyn.pre_processing.extra_signals import ExtraSignals
-from tyredyn.pre_processing.data_checks import DataChecks
-from tyredyn.pre_processing.pre_process_inputs import ProcessInputs
-
-# import helper subsystems
-from tyredyn.subsystems.common.common_mf6x import CommonMF6x
-from tyredyn.subsystems.common.corrections import Corrections
-from tyredyn.subsystems.common.normalize import Normalize
-#from tyredyn.subsystems.common.low_speed_reduction import LowSpeedReduction
-
-# import subsystems
-from tyredyn.subsystems.contact_patch.contact_patch_mf6x import ContactPatchMF6x
-from tyredyn.subsystems.forces.forces_mf6x import ForcesMF6x
-from tyredyn.subsystems.friction_coefficient.friction_mf6x import FrictionMF6x
-from tyredyn.subsystems.gradients.gradients_mf6x import GradientsMF6x
-from tyredyn.subsystems.moments.moments_mf6x import MomentsMF6x
-from tyredyn.subsystems.relaxation.relaxation_mf6x import RelaxationMF6x
-from tyredyn.subsystems.trail.trail_mf6x import TrailMF6x
-from tyredyn.subsystems.turn_slip.turn_slip_mf6x import TurnSlipMF6x
-from tyredyn.subsystems.stiffness.stiffness_mf6x import StiffnessMF6x
-from ..subsystems import *
+from tyredyn.subsystems import *
+from tyredyn.pre_processing import *
 
 from functools import wraps
-
-"""
-@dataclass(frozen=True)
-class InputSignals:
-    SA:   SignalLike # slip angle
-    SL:   SignalLike # slip ratio
-    FZ:   SignalLike # vertical force
-    N:    SignalLike # rotational speed of the wheel
-    P:    SignalLike # tyre pressure
-    IA:   SignalLike # tyre inclination angle (with respect to the ground plane)
-    VX:   SignalLike # contact patch longitudinal speed
-    PHIT: SignalLike # turn slip
-"""
 
 class MF6xBase(TyreBase):
     """

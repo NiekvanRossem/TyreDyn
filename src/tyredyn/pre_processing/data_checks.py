@@ -10,18 +10,6 @@ class DataChecks(SubSystemBase):
         self.correction = model.correction
         self.normalize = model.normalize
 
-    #def __init__(self, model):
-    #    """Make the properties of the overarching class and other subsystems available."""
-    #    self._model = model
-
-    #    # helper functions
-    #    self.correction = model.correction
-    #    self.normalize  = model.normalize
-
-    #def __getattr__(self, name):
-    #    """Make the tyre coefficients directly available."""
-    #    return getattr(self._model, name)
-
     #------------------------------------------------------------------------------------------------------------------#
 
     def _angle_unit_check(

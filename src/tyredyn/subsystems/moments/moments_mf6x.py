@@ -162,12 +162,12 @@ class MomentsMF6x(SubSystemBase):
             zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
             zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT)
         else:
-            zeta_0 = self.zeta_default
-            zeta_2 = self.zeta_default
-            zeta_4 = self.zeta_default
-            zeta_6 = self.zeta_default
-            zeta_7 = self.zeta_default
-            zeta_8 = self.zeta_default
+            zeta_0 = self._zeta_default
+            zeta_2 = self._zeta_default
+            zeta_4 = self._zeta_default
+            zeta_6 = self._zeta_default
+            zeta_7 = self._zeta_default
+            zeta_8 = self._zeta_default
 
         # pneumatic trail
         t = self.trail.find_trail_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
@@ -347,12 +347,12 @@ class MomentsMF6x(SubSystemBase):
             zeta_7 = self.turn_slip._find_zeta_7(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VCX=VCX, PHI=PHI, PHIT=PHIT)
             zeta_8 = self.turn_slip._find_zeta_8(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT)
         else:
-            zeta_0 = self.zeta_default
-            zeta_2 = self.zeta_default
-            zeta_4 = self.zeta_default
-            zeta_6 = self.zeta_default
-            zeta_7 = self.zeta_default
-            zeta_8 = self.zeta_default
+            zeta_0 = self._zeta_default
+            zeta_2 = self._zeta_default
+            zeta_4 = self._zeta_default
+            zeta_6 = self._zeta_default
+            zeta_7 = self._zeta_default
+            zeta_8 = self._zeta_default
 
         # _normalize pressure and load
         dfz = self.normalize._find_dfz(FZ)
@@ -493,9 +493,8 @@ class MomentsMF6x(SubSystemBase):
 
         # low speed correction (empirically discovered by Marco Furlan, modified by Niek van Rossem)
         VCX_prime = self.correction._find_vc_prime(VC=VCX)
-        limit_high = self.VXLOW / VCX_prime - 1.0
+        limit_high = self.VXLOW / np.abs(VCX_prime) - 1.0
         limit_low  = - 1.0 - self.VXLOW - limit_high
-        #idx = np.where(SL >= limit_low & SL <= limit_high)
         idx = np.logical_and(self.signals._find_in_signal(SL, condition="<=", threshold=limit_high),
                              self.signals._find_in_signal(SL, condition=">=", threshold=limit_low))
         if isinstance(idx, np.ndarray) or (isinstance(idx, bool) and idx is True):
@@ -507,9 +506,7 @@ class MomentsMF6x(SubSystemBase):
             MY[idx] *= np.sin(speed_correction)
 
         # apply correction for slip ratio below the lower limit
-        #idx = np.where(SL < limit_low)
-        #MY[idx] = - MY[idx]
-        MY = self.signals._flip_negative(MY, helper_sig=(limit_low - SL))
+        MY = self.signals._flip_negative(MY, helper_sig=(SL - limit_low))
 
         # apply correction for low FZ
         fz_correction = FZ ** 2 / self.FZMIN

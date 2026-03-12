@@ -1,8 +1,10 @@
 from tyredyn.types.model_map import MODEL_CLASS_MAP
 from tyredyn.infrastructure.paths import TYRE_DIR
-from tyredyn.io.normalize_fittyp import normalize_fittyp
+from .tir_validation import TIRValidation
+from .normalize_fittyp import normalize_fittyp
+
 from tyredyn import *
-from tyredyn.io.tir_validation import TIRValidation
+
 from pathlib import Path
 from typing import Union
 

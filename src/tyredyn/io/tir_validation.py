@@ -65,9 +65,9 @@ class FloatSection(DictSection, RootModel[Dict[str, float | int]]):
 
 ##--------------------------------------------------------------------------------------------------------------------##
 
-# validation class for UNITS section
+# validation class for UNITS_MAP section
 class UnitsSection(DictSection, RootModel[Dict[str, str]]):
-    """Subclass to validate the UNITS section of a TIR file."""
+    """Subclass to validate the UNITS_MAP section of a TIR file."""
 
     # initialize model type field and dictionary with required parameters
     required_params: ClassVar[dict[str, str]] = {
@@ -364,7 +364,7 @@ class TIRValidation(BaseModel):
     try:
         UNITS: UnitsSection
     except:
-        raise KeyError("UNITS section not found.")
+        raise KeyError("UNITS_MAP section not found.")
     MODEL:                      ModelSection
     DIMENSION:                  DimensionSection
     OPERATING_CONDITIONS:       OperatingConditionsSection

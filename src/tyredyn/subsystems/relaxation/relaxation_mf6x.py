@@ -59,7 +59,7 @@ class RelaxationMF6x(SubSystemBase):
         Cy = self.stiffness._find_lateral_stiffness(FZ=FZ, P=P)
 
         # lateral relaxation length (A3.9)
-        sigma_y = KYA / Cy
+        sigma_y = np.abs(KYA / Cy)
         return sigma_y
 
     def _find_longitudinal_relaxation(
@@ -91,5 +91,5 @@ class RelaxationMF6x(SubSystemBase):
         Cx = self.stiffness._find_longitudinal_stiffness(FZ=FZ, P=P)
 
         # longitudinal relaxation length (A3.9)
-        sigma_x = KXK / Cx
+        sigma_x = np.abs(KXK / Cx)
         return sigma_x

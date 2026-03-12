@@ -1,15 +1,8 @@
-#from jedi import settings
-
 from tyredyn.types.aliases import SignalLike
-from tyredyn.models.magic_formula_6x import MF6xBase
-
-# import helper subsystems
-
-# import subsystems
 from tyredyn.subsystems.radius.radius_mf61 import RadiusMF61
+from ..models.magic_formula_6x import MF6xBase
 
 from functools import wraps
-
 
 class MF61(MF6xBase):
     """
