@@ -16,7 +16,8 @@ class RadiusMF61(RadiusMF6x):
             FY: SignalLike,
             FZ: SignalLike,
             N:  SignalLike,
-            P:  SignalLike = None
+            P:  SignalLike = None,
+            **kwargs
     ) -> list[SignalLike]:
         """
         Returns the various radii and deflection of the tyre. Order is ``R_omega``, ``RE``, ``RL``, ``rho_z``.

@@ -73,18 +73,19 @@ class RadiusMF6x(SubSystemBase):
         and forces.
         """
 
-        maxiter = 100 # TODO: make adjustable setting
-        tolx = 1e-5
+        # TODO: make adjustable setting
+        maxiter = 100
+        tolx = 1e-6 * self.FNOMIN
 
         # set bounds for optimization
-        RL_lower = 0.95 * R_omega
-        RL_upper = R_omega
+        RL_lower = 0.95 * R0
+        RL_upper = R0
         RL_newest = None
 
         # evaluate function for initial bounds
-        y_lower = self._find_fz(FX=FX, FY=FY, RL=RL_lower, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0,
+        FZ_lower = self._find_fz(FX=FX, FY=FY, RL=RL_lower, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0,
                                  Q_FZ1=Q_FZ1) - FZ
-        y_upper = self._find_fz(FX=FX, FY=FY, RL=RL_upper, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0,
+        FZ_upper = self._find_fz(FX=FX, FY=FY, RL=RL_upper, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0, V0=V0,
                                  Q_FZ1=Q_FZ1) - FZ
 
         # counter TODO: add convergence flags
@@ -94,17 +95,17 @@ class RadiusMF6x(SubSystemBase):
         for iteration in range(maxiter):
 
             # make new guess for RL
-            RL_newest = RL_upper - (RL_upper - RL_lower) / (y_upper - y_lower) * y_upper
-            y_newest = self._find_fz(FX=FX, FY=FY, RL=RL_newest, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0,
+            RL_newest = RL_upper - (RL_upper - RL_lower) / (FZ_upper - FZ_lower) * FZ_upper
+            FZ_newest = self._find_fz(FX=FX, FY=FY, RL=RL_newest, R_omega=R_omega, N=N, dpi=dpi, IA=IA, FZ0=FZ0, R0=R0,
                                       V0=V0, Q_FZ1=Q_FZ1) - FZ
 
             # update values
-            y_upper = y_newest
+            FZ_upper = FZ_newest
             RL_upper = RL_newest
 
             # check if all values have converged
-            error = abs(y_newest).max()
-            if error < tolx * FZ0:
+            error = abs(FZ_newest).max()
+            if error < tolx:
                 break
             if counter == maxiter - 1:
                 warnings.warn(f"Maximum number of iterations reached. No solution for the loaded radius found. Final "

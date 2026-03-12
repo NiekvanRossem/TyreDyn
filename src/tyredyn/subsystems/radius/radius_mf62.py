@@ -17,9 +17,7 @@ class RadiusMF62(RadiusMF6x):
             FZ: SignalLike,
             N:  SignalLike,
             P:  SignalLike = None,
-            IA: SignalLike = 0.0,
-            maxiter: int   = 30,
-            tolx: float    = 1e-6
+            IA: SignalLike = 0.0
     ) -> list[SignalLike]:
         """
         Returns the various radii and deflection of the tyre. Order is ``R_omega``, ``RE``, ``RL``, ``rho``.
@@ -84,7 +82,7 @@ class RadiusMF62(RadiusMF6x):
         # free rolling deflection
         rho_zfr = np.maximum(R_omega - RL, 0.0)
 
-        # reference thread width (5.15 from the 2010 thesis by Van der Hofstad)
+        # reference thread width (equation 5.15 from the 2010 thesis by Van der Hofstad)
         rtw = (1.075 - 0.5 * self.ASPECT_RATIO) * self.WIDTH
 
         # deflection due to camber (MF-Tyre 6.2 equation manual)

@@ -64,4 +64,4 @@ class MF62(MF6xBase):
         (_, _, FZ, N, P, _, _, _,
          _) = self.common._process_data(SA=0.0, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=None, PHIT=0.0, angle_unit="rad")
 
-        return self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
+        return self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P, IA=IA)

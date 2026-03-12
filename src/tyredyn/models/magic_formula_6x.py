@@ -321,7 +321,7 @@ class MF6xBase(TyreBase):
         FY = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         MX = self.moments._find_mx_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         MZ = self.moments._find_mz_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
-        _, _, RL, _ = self.radius._find_radius(FX=0.0, FY=FY, FZ=FZ, N=N, P=P)
+        _, _, RL, _ = self.radius._find_radius(FX=0.0, FY=FY, FZ=FZ, N=N, P=P, IA=IA)
         sigma_y = self.relaxation._find_lateral_relaxation(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         return [FY, MX, MZ, RL, sigma_y]
 
@@ -370,7 +370,7 @@ class MF6xBase(TyreBase):
 
         FX = self.forces._find_fx_pure(SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=0.0)
         MY = self.moments._find_my_pure(SL=SL, FZ=FZ, P=P, IA=IA, VX=VX)
-        _, RE, RL, _ = self.radius._find_radius(FX=FX, FY=0.0, FZ=FZ, N=N, P=P)
+        _, RE, RL, _ = self.radius._find_radius(FX=FX, FY=0.0, FZ=FZ, N=N, P=P, IA=IA)
         sigma_x = self.relaxation._find_longitudinal_relaxation(FZ=FZ, P=P)
         return [FX, MY, RL, RE, sigma_x]
 
@@ -459,7 +459,7 @@ class MF6xBase(TyreBase):
                                             PHIT=PHIT, zeta_0=zeta_0, zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6,
                                             zeta_7=zeta_7, zeta_8=zeta_8, combined_slip=True)
 
-        R_omega, RE, RL, rho = self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
+        R_omega, RE, RL, rho = self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P, IA=IA)
 
         # pneumatic trail
         t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
