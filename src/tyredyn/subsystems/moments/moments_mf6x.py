@@ -176,9 +176,9 @@ class MomentsMF6x(SubSystemBase):
         FY = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
 
         # residual self-aligning couple (4.E36)
-        MZR = self._mz_main_routine(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, VC=VC, VCX=VCX, VS=VS, N=N, zeta_0=zeta_0,
-                                    zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7, zeta_8=zeta_8,
-                                    combined_slip=False)
+        MZR = self._mz_main_routine(SA=SA, SL=0.0, FZ=FZ, P=P, IA=IA, VX=VX, VC=VC, VCX=VCX, VS=VS, N=N, PHIT=PHIT,
+                                    zeta_0=zeta_0, zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7,
+                                    zeta_8=zeta_8, combined_slip=False)
 
         # self-aligning couple due to pneumatic trail (4.E32)
         MZ_prime = - t * FY
@@ -386,9 +386,9 @@ class MomentsMF6x(SubSystemBase):
         MZ_prime = -t * FY_prime
 
         # residual self-aligning couple
-        MZR = self._mz_main_routine(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VC=VC, VCX=VCX, VS=VS, N=N, zeta_0=zeta_0,
-                                    zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7, zeta_8=zeta_8,
-                                    combined_slip=True)
+        MZR = self._mz_main_routine(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VC=VC, VCX=VCX, VS=VS, N=N, PHIT=PHIT,
+                                    zeta_0=zeta_0, zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7,
+                                    zeta_8=zeta_8, combined_slip=True)
 
         # final self-aligning couple (4.E71)
         MZ = MZ_prime + MZR + s * FX
@@ -528,6 +528,7 @@ class MomentsMF6x(SubSystemBase):
             VCX:    SignalLike,
             VS:     SignalLike,
             N:      SignalLike,
+            PHIT:   SignalLike,
             zeta_0: SignalLike,
             zeta_2: SignalLike,
             zeta_4: SignalLike,
@@ -536,7 +537,12 @@ class MomentsMF6x(SubSystemBase):
             zeta_8: SignalLike,
             combined_slip: bool = False
     ) -> SignalLike:
-        """Function containing the main ``MZ`` calculation routine. Used in ``find_mz`` and ``find_mz_pure``."""
+        """Function containing the main ``MZ`` calculation routine. Used in ``find_mz`` and ``find_mz_pure``.
+
+        Parameters
+        ----------
+        PHIT
+        """
 
         # unpack tyre properties
         R0 = self.UNLOADED_RADIUS
@@ -554,7 +560,7 @@ class MomentsMF6x(SubSystemBase):
         LMUY_prime = self.correction._find_lmu_prime(LMUY_star)
 
         # cornering stiffness
-        KYA  = self.gradient._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, VX=VX)
+        KYA  = self.gradient._find_cornering_stiffness(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)
         KYA_sign = self.signals._replace_value(np.sign(KYA), target_sig=KYA, target_val=0.0, new_val=1.0)
 
         # corrected cornering stiffness (4.E39)
@@ -584,7 +590,7 @@ class MomentsMF6x(SubSystemBase):
             # slip stiffness
             KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
 
-            # corrected slip angle (A54)
+            # corrected slip angle (A54) TODO: CORRECT
             alpha_r_eq = self.atan(np.sqrt(self.tan(alpha_r) ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2)) * np.sign(alpha_r)
 
             # NOTE: Equation (4.E78) from the book does not match the TNO solver, thus equation (A54) from the paper is
@@ -620,14 +626,12 @@ class MomentsMF6x(SubSystemBase):
         CR = zeta_7
 
         # peak factor for residual couple (4.E47)
-        DR = (FZ * R0 * ((self.QDZ6 + self.QDZ7 * dfz) * self.LRES * zeta_2
-                         + ((self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi)
-                             + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(gamma_star))
-                         * gamma_star * self.LKZC * zeta_0) * LMUY_star
-              * np.sign(VCX) * cos_prime_alpha + zeta_8 - 1.0)
+        DR = FZ * R0 * ((self.QDZ6 + self.QDZ7 * dfz) * self.LRES * zeta_2 + ((self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(gamma_star)) * gamma_star * self.LKZC * zeta_0) * LMUY_star * np.sign(VCX) * cos_prime_alpha + zeta_8 - 1.0
+        # MFeval version TODO: change back later
+        DR = FZ * R0 * ((self.QDZ6 + self.QDZ7 * dfz) * self.LRES * zeta_2 + ((self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(gamma_star)) * gamma_star * self.LKZC * zeta_0) * LMUY_star * np.sign(VCX) * self.cos(alpha_star) + zeta_8 - 1.0
 
-        # residual self-aligning couple (4.E36)
-        MZR = DR * self.cos(CR * self.atan(BR * alpha_used)) * cos_prime_alpha
+        # residual self-aligning couple (4.E36) TODO: add cos_prime_alpha back later
+        MZR = DR * self.cos(CR * self.atan(BR * alpha_used)) #* cos_prime_alpha
 
         return MZR
 

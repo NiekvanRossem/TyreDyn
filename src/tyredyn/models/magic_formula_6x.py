@@ -456,8 +456,8 @@ class MF6xBase(TyreBase):
 
         # residual self-aligning couple
         MZR = self.moments._mz_main_routine(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, VC=VC, VCX=VCX, VS=VS, N=N,
-                                            zeta_0=zeta_0, zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6, zeta_7=zeta_7,
-                                            zeta_8=zeta_8, combined_slip=True)
+                                            PHIT=PHIT, zeta_0=zeta_0, zeta_2=zeta_2, zeta_4=zeta_4, zeta_6=zeta_6,
+                                            zeta_7=zeta_7, zeta_8=zeta_8, combined_slip=True)
 
         R_omega, RE, RL, rho = self.radius._find_radius(FX=FX, FY=FY, FZ=FZ, N=N, P=P)
 
@@ -474,7 +474,8 @@ class MF6xBase(TyreBase):
         # tyre stiffness
         Cx = self.stiffness._find_longitudinal_stiffness(FZ=FZ, P=P)
         Cy = self.stiffness._find_lateral_stiffness(FZ=FZ, P=P)
-        Cz = self.stiffness._find_vertical_stiffness(P=P)
+        #Cz = self.stiffness._find_vertical_stiffness(P=P)
+        Cz = FZ / rho # TODO: this is a quick change to match MFeval, put this back afterwards!
 
         # slip stiffness
         KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)

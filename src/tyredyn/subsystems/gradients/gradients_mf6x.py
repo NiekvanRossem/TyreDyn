@@ -82,9 +82,8 @@ class GradientsMF6x(SubSystemBase):
         FZ0_prime = FZ0 * self.LFZO
 
         # cornering stiffness (4.E25)
-        KYA = (self.PKY1 * FZ0_prime * (1.0 + self.PPY1 * dpi) * (1.0 - self.PKY3 * np.abs(gamma_star))
-               * self.sin(self.PKY4 * np.atan2(FZ / FZ0_prime, (self.PKY2 + self.PKY5 * gamma_star ** 2)
-                                             * (1.0 + self.PPY2 * dpi)))) * zeta_3 * self.LKY
+        KYA = (self.PKY1 * FZ0_prime * (1.0 + self.PPY1 * dpi) * (1.0 - self.PKY3 * np.abs(gamma_star)) * self.sin(self.PKY4 * np.atan2(FZ / FZ0_prime, (self.PKY2 + self.PKY5 * gamma_star ** 2) * (1.0 + self.PPY2 * dpi)))) * zeta_3 * self.LKY
+
         return KYA
 
     def _find_slip_stiffness(
