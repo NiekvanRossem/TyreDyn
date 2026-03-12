@@ -43,7 +43,7 @@ class MF6xBase(TyreBase):
         self._eps_r = 1e-6
         self._eps_x = 1e-6
         self._eps_kappa = 1e-6
-        self._eps_V = 0.1  # set to 0.1 as suggested by Pacejka
+        self._eps_V = 1e-6  # set to 0.1 as suggested by Pacejka
 
         # scaling factor to control decaying friction with increasing speed (set to zero generally)
         self._LMUV = 0.0
