@@ -42,6 +42,7 @@ class MF6xBase(TyreBase):
         # correction factors to avoid singularities at low speed
         self._eps_r = 1e-6
         self._eps_x = 1e-6
+        self._eps_y = 1e-6
         self._eps_kappa = 1e-6
         self._eps_V = 1e-6  # set to 0.1 as suggested by Pacejka
 

@@ -27,8 +27,8 @@ class CommonMF6x(SubSystemBase):
         """Finds the stiffness factor for the side force. Used in ``ForcesMF6x`` and ``MomentsMF6x``."""
 
         # side force stiffness factor (4.E26)
-        eps_y = self._find_eps_y(FZ)
-        BY = KYA / (CY * DY + eps_y)
+        #eps_y = self._find_eps_y(FZ)
+        BY = KYA / (CY * DY + self._eps_y)
         return BY
 
     def _find_cy(self) -> SignalLike:
@@ -67,7 +67,7 @@ class CommonMF6x(SubSystemBase):
         DY = mu_y * FZ * zeta_2
         return DY
 
-    def _find_eps_y(
+    def _find_eps_gamma(
             self,
             FZ: SignalLike
     ) -> SignalLike:
@@ -79,12 +79,12 @@ class CommonMF6x(SubSystemBase):
             dfz = self.normalize._find_dfz(FZ)
 
             # difference between camber and turn slip response (4.90)
-            eps_y = self.PECP1 * (1.0 + self.PECP2 * dfz)
+            eps_gamma = self.PECP1 * (1.0 + self.PECP2 * dfz)
 
         else:
-            eps_y = 1e-6
+            eps_gamma = 1e-6
 
-        return eps_y
+        return eps_gamma
 
     def _find_gyk(
             self,

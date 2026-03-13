@@ -110,7 +110,7 @@ class TurnSlipMF6x(SubSystemBase):
         dfz = self.normalize._find_dfz(FZ)
 
         # difference between camber and turn slip response
-        eps_y = self.common._find_eps_y(FZ)
+        eps_gamma = self.common._find_eps_gamma(FZ)
 
         # cornering stiffness
         KYA = GradientsMF6x._find_cornering_stiffness(self, SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHI)
@@ -129,7 +129,7 @@ class TurnSlipMF6x(SubSystemBase):
         KYCO = GradientsMF6x._find_camber_stiffness(self, FZ=FZ, P=P)
 
         # spin force stiffness (4.89)
-        KYRP0 = KYCO / (1.0 - eps_y)
+        KYRP0 = KYCO / (1.0 - eps_gamma)
 
         # shape factor (4.85)
         CHYP = self.PHYP1
