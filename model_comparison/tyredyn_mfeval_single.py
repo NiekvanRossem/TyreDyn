@@ -1,7 +1,5 @@
 from tyredyn.infrastructure.paths import PROJECT_ROOT
-from model_comparison.utils.table_plot import print_table_section
-from model_comparison.utils.unit_conversion import si2display
-from model_comparison.utils.process_output import process_mfeval, process_tyredyn, plot_comparison
+from model_comparison.utils.process_output import plot_comparison
 import numpy as np
 import sys
 
@@ -10,10 +8,9 @@ import sys
 
 # choose whether to use turn slip
 use_turn_slip = True
-use_mfeval = True
 
-# check if you have the 64-bit version of Python (this is required for the matlab engine)
-assert sys.maxsize > 2**32, "You need a 64 bit version of Python"
+# turn MFeval off so you can run Matlab directly, for debugging purposes
+use_mfeval = True
 
 # path to TIR file (change this for your case)
 tir_file = PROJECT_ROOT / 'tyres_example' / 'car205_60R19.tir'
@@ -22,6 +19,9 @@ tir_file = PROJECT_ROOT / 'tyres_example' / 'car205_60R19.tir'
 # INITIALIZE MFEVAL
 
 if use_mfeval:
+
+    # check if you have the 64-bit version of Python (this is required for the matlab engine)
+    assert sys.maxsize > 2 ** 32, "You need a 64 bit version of Python"
 
     # import and start matlab engine
     import matlab.engine
@@ -50,6 +50,10 @@ tyredyn_tyre = Tyre(
     use_mfeval_mode = False
 )
 
+# set use mode for MFeval to match TyreDyn
+if use_mfeval:
+    mfeval_usemode = matlab.double(122 if use_turn_slip else 121)
+
 #----------------------------------------------------------------------------------------------------------------------#
 # PREPARE INPUT
 
@@ -62,12 +66,9 @@ IA   = -np.deg2rad(1.1) # inclination angle
 VX   = 200 / 3.6        # speed
 PHIT = 0.5              # turn slip (will be ignored if use_turn_slip is set to False)
 
+# store in a Matlab array for MFeval
 if use_mfeval:
-    # store in a Matlab array for MFeval
     inputs_mfeval = matlab.double([FZ, SL, SA, IA, PHIT, VX, P])
-
-    # set use mode for MFeval to match TyreDyn
-    mfeval_usemode = matlab.double(122 if use_turn_slip else 121)
 
 #----------------------------------------------------------------------------------------------------------------------#
 # READ TYRE STATE

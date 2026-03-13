@@ -1,7 +1,7 @@
 from model_comparison.utils.unit_conversion import radpersec2rpm, si2display
 from model_comparison.utils.maps import NAMES_MAP, UNITS_MAP, PARAMETERS, ORDER_TYREDYN, ORDER_MFEVAL
 from model_comparison.utils.dataclasses import OutputSignals
-from model_comparison.utils.table_plot import print_table
+from model_comparison.utils.table_print import print_table
 from matlab import double as matlab_double
 from dataclasses import fields
 import numpy as np

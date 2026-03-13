@@ -6,13 +6,13 @@ filepath = "C:\Users\niekv\Documents\5. Personal engineering scripts\TyreDyn\tyr
 tyre = mfeval.readTIR(filepath);
 
 % input state
-SA   = deg2rad(7.0)
-SL   = 0.00           
-FZ   = 4500.0         
-P    = 1.8e5          
-IA   = -deg2rad(1.1)
-VX   = 200 / 3.6       
-PHIT = 0.5             
+SA   = deg2rad(7.0);
+SL   = 0.00         ;  
+FZ   = 4500.0        ; 
+P    = 1.8e5          ;
+IA   = -deg2rad(1.1);
+VX   = 200 / 3.6     ;  
+PHIT = 0.5            ; 
 
 % evaluate tyre
 out = mfeval(tyre, [FZ, SL, SA, IA, PHIT, VX, P], 122);

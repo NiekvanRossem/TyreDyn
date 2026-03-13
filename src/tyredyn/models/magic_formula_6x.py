@@ -479,7 +479,7 @@ class MF6xBase(TyreBase):
 
         # NOTE: MFeval uses the equation below to find the vertical stiffness. This outputs a different value to
         # equation A3.5 from the 2012 book by Pacejka & Besselink as the stiffness is not linear.
-        # Cz = FZ / rho_z
+        # Cz = FZ / rho
 
         # slip stiffness
         KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)

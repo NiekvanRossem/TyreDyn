@@ -155,7 +155,7 @@ class MomentsMF6x(SubSystemBase):
         # turn slip correction
         if self._use_turn_slip:
             PHI = self.extra_signals._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
-            zeta_0 = 0.0  # (4.83)
+            zeta_0 = 0.0  # set to zero as per equation 4.83
             zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
             zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=0.0, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI, zeta_2=zeta_2)
             zeta_6 = self.turn_slip._find_zeta_6(PHI)
@@ -340,7 +340,7 @@ class MomentsMF6x(SubSystemBase):
         if self._use_turn_slip:
             PHI = self.extra_signals._find_phi(FZ=FZ, N=N, VC=VC, IA=IA, PHIT=PHIT)
             zeta_0 = 0.0
-            zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHIT)
+            zeta_2 = self.turn_slip._find_zeta_2(SA=SA, FZ=FZ, PHI=PHI)
             zeta_4 = self.turn_slip._find_zeta_4(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VCX=VCX, VS=VS, PHI=PHI,
                                                  zeta_2=zeta_2)
             zeta_6 = self.turn_slip._find_zeta_6(PHIT)
@@ -366,10 +366,10 @@ class MomentsMF6x(SubSystemBase):
         GYK = self.common._find_gyk(SA=SA, SL=SL, FZ=FZ, IA=IA, VCX=VCX)
 
         # pure slip side force without camber or turn slip
-        FY0 = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=0.0, VX=VX, PHIT=0.0)
+        FY0_prime = self.forces._find_fy_pure(SA=SA, FZ=FZ, N=N, P=P, IA=0.0, VX=VX, PHIT=0.0)
 
         # combined slip side force (4.E74)
-        FY_prime = FY0 * GYK
+        FY_prime = FY0_prime * GYK
 
         # pneumatic trail
         t = self.trail.find_trail_combined(SA=SA, SL=SL, FZ=FZ, N=N, P=P, IA=IA, VX=VX, PHIT=PHIT)

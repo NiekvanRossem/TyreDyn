@@ -62,7 +62,7 @@ def print_table_section(
             f"{display_name:<{section_width}} | "
             f"{format_value(val_tyredyn, unit, value_width=value_width, decimals=decimals)} | "
             f"{format_value(val_mfeval, unit, value_width=value_width, decimals=decimals)} | "
-            f"{diff:>{diff_width}.{decimals}f}"
+            f"{diff:>{diff_width}.{decimals}e}"
         )
         print(row)
 

@@ -63,7 +63,7 @@ class TurnSlipMF6x(SubSystemBase):
         # sharpness factor (4.78)
         BYP = self.PDYP1 * (1.0 + self.PDYP2 * dfz) * self.cos(self.atan(self.PDYP3 * self.tan(SA)))
 
-        # second turn slip correction factor (4.77) TODO: CORRECT
+        # second turn slip correction factor (4.77)
         zeta_2 = self.cos(self.atan(BYP * (R0 * np.abs(PHI) + self.PDYP4 * np.sqrt(R0 * np.abs(PHI)))))
 
         return zeta_2
@@ -221,11 +221,9 @@ class TurnSlipMF6x(SubSystemBase):
 
         # peak factor
         DRP = self.__find_drp(SA=SA, SL=SL, FZ=FZ, P=P, IA=IA, VX=VX, PHIT=PHIT, R0=R0, FZ0_prime=FZ0_prime)
-        DRP = np.maximum(DRP, 1e-6) # to avoid dividing by zero
 
         # turn slip correction (MF-Tyre 6.2 equation manual)
-        # NOTE: The book by Pacejka & Besselink adds eps_r to the denominator of the arccos term below.
-        zeta_7 = (2.0 / np.pi) * np.acos(MZP_90 / np.abs(DRP))
+        zeta_7 = (2.0 / np.pi) * np.acos(MZP_90 / (np.abs(DRP) + self._eps_r))
         return zeta_7
 
     def _find_zeta_8(
