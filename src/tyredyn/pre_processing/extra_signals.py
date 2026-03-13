@@ -67,11 +67,13 @@ class ExtraSignals(SubSystemBase):
         # _normalize load
         dfz = self.normalize._find_dfz(FZ)
 
-        # singularity-protected speed # TODO: MFeval uses VC_prime = V
+        # singularity-protected speed
         VC_prime = self.correction._find_vc_prime(VC)
 
+        # NOTE: MFeval assumes VC_prime = V for this, which gives a NaN output when standing still.
+
         # find the total spin velocity (4.75)
-        psi_dot = - PHIT / VC_prime
+        psi_dot = - PHIT * VC_prime
 
         # camber reduction factor
         eps_gamma = self.correction._find_epsilon_gamma(dfz)

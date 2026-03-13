@@ -474,8 +474,11 @@ class MF6xBase(TyreBase):
         # tyre stiffness
         Cx = self.stiffness._find_longitudinal_stiffness(FZ=FZ, P=P)
         Cy = self.stiffness._find_lateral_stiffness(FZ=FZ, P=P)
-        #Cz = self.stiffness._find_vertical_stiffness(P=P)
-        Cz = FZ / rho # TODO: this is a quick change to match MFeval, put this back afterwards!
+        Cz = self.stiffness._find_vertical_stiffness(P=P)
+
+        # NOTE: MFeval uses the equation below to find the vertical stiffness. This outputs a different value to
+        # equation A3.5 from the 2012 book by Pacejka & Besselink as the stiffness is not linear.
+        # Cz = FZ / rho_z
 
         # slip stiffness
         KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
@@ -502,7 +505,7 @@ class MF6xBase(TyreBase):
             output = [
                 FX, FY, FZ,                 # FORCES
                 MX, MY, MZ,                 # MOMENTS
-                inputs.SL, inputs.SA, inputs.IA, inputs.PHIT, inputs.VX, inputs.P, N, # INPUT STATE
+                inputs.SL, inputs.SA, inputs.IA, PHIT, inputs.VX, inputs.P, N, # INPUT STATE TODO: change phit back to the original
                 R_omega, RE, rho, RL,       # RADII
                 2 * a, 2 * b,               # CONTACT PATCH
                 t,                          # TRAIL

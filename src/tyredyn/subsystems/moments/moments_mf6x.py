@@ -590,7 +590,7 @@ class MomentsMF6x(SubSystemBase):
             # slip stiffness
             KXK = self.gradient._find_slip_stiffness(FZ=FZ, P=P)
 
-            # corrected slip angle (A54) TODO: CORRECT
+            # corrected slip angle (A54)
             alpha_r_eq = self.atan(np.sqrt(self.tan(alpha_r) ** 2 + (KXK / KYA_prime) ** 2 * SL ** 2)) * np.sign(alpha_r)
 
             # NOTE: Equation (4.E78) from the book does not match the TNO solver, thus equation (A54) from the paper is
@@ -625,12 +625,13 @@ class MomentsMF6x(SubSystemBase):
         # shape factor for the residual couple (4.E46)
         CR = zeta_7
 
-        # peak factor for residual couple (4.E47)
-        DR = FZ * R0 * ((self.QDZ6 + self.QDZ7 * dfz) * self.LRES * zeta_2 + ((self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(gamma_star)) * gamma_star * self.LKZC * zeta_0) * LMUY_star * np.sign(VCX) * cos_prime_alpha + zeta_8 - 1.0
-        # MFeval version TODO: change back later
+        # NOTE: MFeval uses cos(alpha_star) instead of cos_prime_alpha
+        # peak factor for residual couple (4.E47) TODO: change before release
         DR = FZ * R0 * ((self.QDZ6 + self.QDZ7 * dfz) * self.LRES * zeta_2 + ((self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(gamma_star)) * gamma_star * self.LKZC * zeta_0) * LMUY_star * np.sign(VCX) * self.cos(alpha_star) + zeta_8 - 1.0
+        #DR = FZ * R0 * ((self.QDZ6 + self.QDZ7 * dfz) * self.LRES * zeta_2 + ((self.QDZ8 + self.QDZ9 * dfz) * (1.0 + self.PPZ2 * dpi) + (self.QDZ10 + self.QDZ11 * dfz) * np.abs(gamma_star)) * gamma_star * self.LKZC * zeta_0) * LMUY_star * np.sign(VCX) * cos_prime_alpha + zeta_8 - 1.0
 
-        # residual self-aligning couple (4.E36) TODO: add cos_prime_alpha back later
+        # NOTE: MFeval does not multiply MZR with cos_prime_alpha, as stated in the book
+        # residual self-aligning couple (4.E36) TODO: change before release
         MZR = DR * self.cos(CR * self.atan(BR * alpha_used)) #* cos_prime_alpha
 
         return MZR

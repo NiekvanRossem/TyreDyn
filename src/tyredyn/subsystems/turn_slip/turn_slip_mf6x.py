@@ -63,8 +63,9 @@ class TurnSlipMF6x(SubSystemBase):
         # sharpness factor (4.78)
         BYP = self.PDYP1 * (1.0 + self.PDYP2 * dfz) * self.cos(self.atan(self.PDYP3 * self.tan(SA)))
 
-        # second turn slip correction factor (4.77)
+        # second turn slip correction factor (4.77) TODO: CORRECT
         zeta_2 = self.cos(self.atan(BYP * (R0 * np.abs(PHI) + self.PDYP4 * np.sqrt(R0 * np.abs(PHI)))))
+
         return zeta_2
 
     def _find_zeta_3(

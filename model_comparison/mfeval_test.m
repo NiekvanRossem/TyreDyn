@@ -12,10 +12,10 @@ FZ   = 4500.0
 P    = 1.8e5          
 IA   = -deg2rad(1.1)
 VX   = 200 / 3.6       
-PHIT = 0.0             
+PHIT = 0.5             
 
 % evaluate tyre
-out = mfeval(tyre, [FZ, SL, SA, IA, PHIT, VX, P], 121);
+out = mfeval(tyre, [FZ, SL, SA, IA, PHIT, VX, P], 122);
 
 % extract output data
 FX      = out(1);

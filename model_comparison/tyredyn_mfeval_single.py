@@ -9,7 +9,7 @@ import sys
 # SETUP
 
 # choose whether to use turn slip
-use_turn_slip = False
+use_turn_slip = True
 use_mfeval = True
 
 # check if you have the 64-bit version of Python (this is required for the matlab engine)
@@ -60,7 +60,7 @@ FZ   = 4500.0           # vertical load
 P    = 1.8e5            # pressure
 IA   = -np.deg2rad(1.1) # inclination angle
 VX   = 200 / 3.6        # speed
-PHIT = 0.0              # turn slip (will be ignored if use_turn_slip is set to False)
+PHIT = 0.5              # turn slip (will be ignored if use_turn_slip is set to False)
 
 if use_mfeval:
     # store in a Matlab array for MFeval
