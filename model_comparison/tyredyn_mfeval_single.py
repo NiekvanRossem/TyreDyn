@@ -58,17 +58,17 @@ if use_mfeval:
 # PREPARE INPUT
 
 # input state
-SA   = np.deg2rad(7.0)  # slip angle
-SL   = 0.00             # slip ratio
+SA   = np.deg2rad(16.0)  # slip angle
+SL   = 0.30             # slip ratio
 FZ   = 4500.0           # vertical load
 P    = 1.8e5            # pressure
 IA   = -np.deg2rad(1.1) # inclination angle
 VX   = 200 / 3.6        # speed
 PHIT = 0.5              # turn slip (will be ignored if use_turn_slip is set to False)
-
+N    = 162.39316463425698
 # store in a Matlab array for MFeval
 if use_mfeval:
-    inputs_mfeval = matlab.double([FZ, SL, SA, IA, PHIT, VX, P])
+    inputs_mfeval = matlab.double([FZ, SL, SA, IA, PHIT, VX, P, N])
 
 #----------------------------------------------------------------------------------------------------------------------#
 # READ TYRE STATE

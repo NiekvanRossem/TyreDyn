@@ -96,7 +96,7 @@ class ExtraSignals(SubSystemBase):
         VSX = - SL * VX
 
         # lateral slip speed (2.12)
-        VSY = VX * self.tan(SA)
+        VSY = - np.abs(VX) * self.tan(SA)
 
         # total slip speed (3.39)
         VS = np.sqrt(VSX ** 2 + VSY ** 2)
