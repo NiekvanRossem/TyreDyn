@@ -80,6 +80,7 @@ class ExtraSignals(SubSystemBase):
 
         # total tyre spin (4.76)
         PHI = (1.0 / VC_prime) * (psi_dot - (1.0 - eps_gamma) * N * self.sin(IA))
+
         return PHI
 
     def _find_speeds(

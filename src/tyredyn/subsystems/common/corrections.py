@@ -47,7 +47,7 @@ class Corrections(SubSystemBase):
         """Returns the camber reduction factor for turn slip."""
 
         # camber reduction factor (4.90)
-        eps_gamma = self.PECP1 * (1.0 - self.PECP2 * dfz)
+        eps_gamma = self.PECP1 * (1.0 + self.PECP2 * dfz)
         return eps_gamma
 
     def _find_gamma_star(
@@ -96,8 +96,7 @@ class Corrections(SubSystemBase):
 
         # corrected wheel center speed (4.E6a)
         VC_sign = self.signals._replace_value(np.sign(VC), target_sig=VC, target_val=0.0, new_val=1.0)
-        VC_prime = VC + self._eps_V * VC_sign
-
-        # NOTE: the book .... ??? TODO
+        #VC_prime = VC + self._eps_V * VC_sign
+        VC_prime = VC # TODO: this matches MFeval?
 
         return VC_prime

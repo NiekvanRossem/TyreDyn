@@ -13,7 +13,7 @@ use_turn_slip = True
 use_mfeval = True
 
 # path to TIR file (change this for your case)
-tir_file = PROJECT_ROOT / 'tyres_example' / 'car205_60R19.tir'
+tir_file = PROJECT_ROOT / 'tyres_example' / 'test_file.tir'
 
 #----------------------------------------------------------------------------------------------------------------------#
 # INITIALIZE MFEVAL

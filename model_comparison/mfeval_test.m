@@ -2,7 +2,7 @@
 clear; clc; close all;
 
 % Load tyre
-filepath = "C:\Users\niekv\Documents\5. Personal engineering scripts\TyreDyn\tyres_example\car205_60R19.tir";
+filepath = "C:\Users\niekv\Documents\5. Personal engineering scripts\TyreDyn\tyres_example\test_file.tir";
 tyre = mfeval.readTIR(filepath);
 
 % input state

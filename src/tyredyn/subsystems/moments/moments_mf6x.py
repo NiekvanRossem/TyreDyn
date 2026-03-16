@@ -1,6 +1,7 @@
 from tyredyn.types.aliases import SignalLike, AngleUnit
 from tyredyn.infrastructure.subsystem_base import SubSystemBase
 from typing import Literal
+from warnings import warn
 import numpy as np
 
 class MomentsMF6x(SubSystemBase):
@@ -426,10 +427,10 @@ class MomentsMF6x(SubSystemBase):
         # entries in both sets, a warning will be displayed. The equation used in this case is taken from a draft
         # version of the 2010 paper by Besselink et al. (via Marco Furlan)
         if any(x != 0 for x in set1) and any(y != 0 for y in set2):
-            warnings.warn("Cannot have non-zero values for both parameter sets QSX1 to QSX11 and QSX12 to QSX14.")
+            warn("Cannot have non-zero values for both parameter sets QSX1 to QSX11 and QSX12 to QSX14.")
 
             # overturning couple (49)
-            MX = (R0 * FZ * LMX * (self.QSX1 * self.LVMX - self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
+            MX = (R0 * FZ * self.LMX * (self.QSX1 * self.LVMX - self.QSX2 * IA * (1.0 + self.PPMX1 * dpi)
                                    - self.QSX12 * IA * np.abs(IA) + self.QSX3 * FY / FZ0 + self.QSX4
                                    * np.cos(self.QSX5 * np.atan2((self.QSX6 * FZ / FZ0) ** 2, 1))
                                   * np.sin(self.QSX7 * IA + self.QSX8 * np.atan2(self.QSX9 * FY / FZ0, 1))

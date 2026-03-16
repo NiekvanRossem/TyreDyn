@@ -144,7 +144,8 @@ class GradientsMF6x(SubSystemBase):
         dpi = self.normalize._find_dpi(P)
 
         # camber stiffness (4.E30)
-        KYCO = FZ * (self.PKY6 + self.PKY7 * dfz) * (1.0 - self.PPY5 * dpi) * self.LKYC
+        KYCO = FZ * (self.PKY6 + self.PKY7 * dfz) * (1.0 + self.PPY5 * dpi) * self.LKYC
+
         return KYCO
 
     def _find_aligning_stiffness(
